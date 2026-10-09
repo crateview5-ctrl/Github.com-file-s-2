@@ -1,0 +1,15 @@
+{
+  "name": "BrightSteps Learning",
+  "short_name": "BrightSteps",
+  "description": "Fun learning for children: English, Maths and more.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e6f4ff",
+  "theme_color": "#1d2b4f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
