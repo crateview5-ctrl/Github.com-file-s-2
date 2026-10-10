@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Record BrightSteps sounds</title>
+<style>
+body{font-family:"Trebuchet MS",system-ui,sans-serif;background:#e6f4ff;color:#1d2b4f;margin:0;padding:14px}
+.row{background:#fff;border-radius:16px;padding:12px;margin:10px 0}
+small{display:block;color:#456;margin:2px 0 6px}
+button,a.dl{font:inherit;font-size:1rem;padding:12px 14px;border:0;border-radius:12px;background:#2f8fe0;color:#fff;margin:4px 4px 0 0;display:inline-block;text-decoration:none}
+button.rec{background:#e03a3a}button:disabled{opacity:.4}a.dl{background:#2fbf71}
+</style></head><body>
+<h2>Record BrightSteps sounds</h2>
+<p>Quiet jagah baithein. Har clip: Record dabayein, bolein, Stop dabayein, Play se suneN, phir Save karein. Saari files Downloads mein jayengi.</p>
+<div id="list"></div>
+<script>
+const clips=[
+["name-a","Name of A","Bolein: “ay”"],["sound-a","Sound of a","Chhota sound: a jaise apple mein"],
+["name-b","Name of B","Bolein: “bee”"],["sound-b","Sound of b","Chhota sound: b (buh, bina lamba kiye)"],
+["name-c","Name of C","Bolein: “see”"],["sound-c","Sound of c","Sound: k (cat wala c)"],
+["word-apple","Word: apple",""],["word-ant","Word: ant",""],["word-ball","Word: ball",""],
+["word-bus","Word: bus",""],["word-cat","Word: cat",""],["word-cup","Word: cup",""]];
+const list=document.getElementById("list");
+list.innerHTML=clips.map(([id,t,h])=>`<div class="row"><b>${t}</b><small>${h}</small>
+<button class="rb" data-id="${id}">⏺ Record</button><button class="pb" data-id="${id}" disabled>▶ Play</button><span class="sv" data-id="${id}"></span></div>`).join("");
+const urls={};let rec=null,recId=null;
+list.addEventListener("click",async e=>{
+  const b=e.target.closest("button");if(!b)return;const id=b.dataset.id;
+  if(b.classList.contains("pb")){new Audio(urls[id]).play();return;}
+  if(rec&&recId===id){rec.stop();return;}
+  if(rec){return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const chunks=[];rec=new MediaRecorder(stream);recId=id;
+    rec.ondataavailable=ev=>chunks.push(ev.data);
+    rec.onstop=()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(chunks,{type:"audio/webm"});urls[id]=URL.createObjectURL(blob);
+      b.textContent="⏺ Record again";b.classList.remove("rec");
+      document.querySelector(`.pb[data-id="${id}"]`).disabled=false;
+      document.querySelector(`.sv[data-id="${id}"]`).innerHTML=`<a class="dl" download="audio-${id}.webm" href="${urls[id]}">⬇ Save</a>`;
+      rec=null;recId=null;
+    };
+    rec.start();b.textContent="⏹ Stop";b.classList.add("rec");
+  }catch(err){alert("Microphone allow karein (Chrome mein kholein).");}
+});
+</script></body></html>

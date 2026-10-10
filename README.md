@@ -3,4 +3,4 @@ Children's learning app (PWA). Version 1: Home screen, English path, Lesson 1 (l
 Maths and AI Learning Buddy are marked "Coming soon".
 
 Optional real phonics recordings (the app plays them automatically if present):
-audio-name-a.mp3, audio-sound-a.mp3, and the same for b and c.
+audio-name-a.webm, audio-sound-a.webm, audio-word-apple.webm etc. Use recorder.html to make them.

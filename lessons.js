@@ -1,6 +1,6 @@
 // Lesson content. Add new lessons here later (Lesson 2: D, E, F ...).
 // "nameSay" and "soundSay" are spelled-out hints for the phone's built-in voice.
-// For real recorded phonics, add files named audio-name-a.mp3 and audio-sound-a.mp3
+// For real recorded phonics, add files named audio-name-a.webm and audio-sound-a.webm
 // (same for b and c) next to index.html and the app will play those instead.
 const LESSON1 = {
   id: "english-1",
