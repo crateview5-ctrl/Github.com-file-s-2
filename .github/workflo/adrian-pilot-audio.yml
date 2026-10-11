@@ -1,0 +1,33 @@
+name: Adrian Pilot Audio
+
+on:
+workflow_dispatch:
+
+permissions:
+contents: read
+
+jobs:
+generate-audio:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.12"
+
+  - name: Generate pilot audio
+    env:
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+    run: python pilot/adrian/generate.py
+
+  - name: Upload generated MP3 files
+    if: success()
+    uses: actions/upload-artifact@v4
+    with:
+      name: adrian-pilot-audio
+      path: pilot-output/*.mp3
+      if-no-files-found: error
