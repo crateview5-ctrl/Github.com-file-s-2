@@ -1,0 +1,23 @@
+
+{
+  "voice_id": "vrZ1gMhrsD9LI0gRKrLh",
+  "model_id": "eleven_flash_v2",
+  "voice_settings": {
+    "stability": 0.5,
+    "similarity_boost": 0.75
+  },
+  "clips": [
+    { "id": "01-name-a", "text": "A", "ipa": "eɪ" },
+    { "id": "02-name-b", "text": "B", "ipa": "biː" },
+    { "id": "03-name-c", "text": "C", "ipa": "siː" },
+    { "id": "04-sound-a", "text": "a", "ipa": "æ" },
+    { "id": "05-sound-b", "text": "b", "ipa": "bə" },
+    { "id": "06-sound-c", "text": "c", "ipa": "kə" },
+    { "id": "07-word-apple", "text": "apple" },
+    { "id": "08-word-ant", "text": "ant" },
+    { "id": "09-word-ball", "text": "ball" },
+    { "id": "10-word-bat", "text": "bat" },
+    { "id": "11-word-cat", "text": "cat" },
+    { "id": "12-word-cap", "text": "cap" }
+  ]
+}
