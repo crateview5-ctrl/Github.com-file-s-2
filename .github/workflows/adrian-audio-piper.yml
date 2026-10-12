@@ -32,6 +32,8 @@ jobs:
           curl -L -o voices/en_US-ryan-medium.onnx.json $BASE/en_US-ryan-medium.onnx.json
 
       - name: Generate Adrian pilot audio
+        env:
+          PIPER_MODEL: voices/en_US-ryan-medium.onnx
         run: python pilot/adrian/generate_piper.py
 
       - name: Upload audio ZIP
