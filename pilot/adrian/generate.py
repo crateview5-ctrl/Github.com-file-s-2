@@ -1,87 +1,67 @@
-
+import asyncio
 import json
-import os
 import sys
-import time
 from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+
+import edge_tts
 
 CONFIG = Path("pilot/adrian/clips.json")
 OUTPUT = Path("pilot-output")
 
-def main():
-    api_key = os.environ.get("ELEVENLABS_API_KEY")
-    if not api_key:
-        sys.exit("ERROR: ELEVENLABS_API_KEY secret is missing.")
+# Free test voice; this is not the OpenAI Cedar voice.
+VOICE = "en-US-AndrewNeural"
 
+
+async def generate_clip(clip, index, total):
+    clip_id = clip["id"]
+    text = clip["text"]
+    output_file = OUTPUT / f"{clip_id}.mp3"
+
+    if output_file.exists():
+        sys.exit(
+            f"ERROR: {output_file} already exists. "
+            "Refusing to overwrite files."
+        )
+
+    print(f"Generating {index}/{total}: {clip_id}: {text!r}")
+
+    try:
+        communicate = edge_tts.Communicate(
+            text=text,
+            voice=VOICE,
+            rate="+0%",
+            pitch="+0Hz",
+        )
+        await communicate.save(str(output_file))
+
+        if not output_file.exists() or output_file.stat().st_size == 0:
+            sys.exit(f"ERROR: Empty audio file for {clip_id}")
+
+        print(f"Saved: {output_file} ({output_file.stat().st_size} bytes)")
+
+    except Exception as exc:
+        sys.exit(f"ERROR generating {clip_id}: {exc}")
+
+
+async def main():
     if not CONFIG.is_file():
         sys.exit(f"ERROR: Config file not found: {CONFIG}")
 
-    with CONFIG.open("r", encoding="utf-8") as f:
-        config = json.load(f)
+    with CONFIG.open("r", encoding="utf-8") as file:
+        config = json.load(file)
 
-    voice_id = config["voice_id"]
-    model_id = config.get("model_id", "eleven_flash_v2")
-    settings = config.get("voice_settings", {})
-    clips = config["clips"]
+    clips = config.get("clips", [])
 
     if not clips:
         sys.exit("ERROR: No clips found in clips.json")
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
-    for clip in clips:
-        clip_id = clip["id"]
-        text = clip["text"]
-        output_file = OUTPUT / f"{clip_id}.mp3"
+    for index, clip in enumerate(clips, start=1):
+        await generate_clip(clip, index, len(clips))
 
-        if output_file.exists():
-            sys.exit(
-                f"ERROR: {output_file} already exists. "
-                "Refusing to overwrite files."
-            )
+    print(f"SUCCESS: Generated {len(clips)} MP3 files in {OUTPUT}")
 
-        # IPA is retained for review, but not sent as unsupported SSML.
-        # We will verify pronunciation before adding IPA-specific handling.
-        payload = {
-            "text": text,
-            "model_id": model_id,
-            "voice_settings": settings,
-            "output_format": "mp3_44100_128",
-        }
-
-        request = Request(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "xi-api-key": api_key,
-                "Content-Type": "application/json",
-                "Accept": "audio/mpeg",
-            },
-            method="POST",
-        )
-
-        print(f"Generating {clip_id}: {text!r}")
-
-        try:
-            with urlopen(request, timeout=90) as response:
-                audio = response.read()
-
-            if not audio:
-                sys.exit(f"ERROR: Empty audio response for {clip_id}")
-
-            output_file.write_bytes(audio)
-            print(f"Saved: {output_file} ({len(audio)} bytes)")
-            time.sleep(1)
-
-        except HTTPError as e:
-            detail = e.read().decode("utf-8", errors="replace")
-            sys.exit(f"ElevenLabs API error {e.code}: {detail}")
-        except (URLError, TimeoutError) as e:
-            sys.exit(f"Network error while generating {clip_id}: {e}")
-
-    print(f"SUCCESS: Generated {len(clips)} audio clips in {OUTPUT}")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
