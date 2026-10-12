@@ -11,14 +11,28 @@ MODEL = os.environ.get("PIPER_MODEL", "")
 
 # Piper reads plain text (no phoneme tags), so letters/sounds are spelled
 # the way they should be spoken. Words are read as written.
+# Letter sounds are repeated three times, the way a teacher drills them.
 SPOKEN = {
     "01-name-a": "ay",
     "02-name-b": "bee",
     "03-name-c": "see",
-    "04-sound-a": "ah",
-    "05-sound-b": "buh",
-    "06-sound-c": "kuh",
+    "04-sound-a": "ah, ah, ah",
+    "05-sound-b": "buh, buh, buh",
+    "06-sound-c": "kuh, kuh, kuh",
 }
+
+# Speed multiplier: smaller = slower. Names and sounds are slowest.
+SLOW_LETTER = 0.65
+SLOW_WORD = 0.8
+
+LEAD_MS = 300       # silence before the voice (milliseconds)
+TAIL_SEC = 0.5      # silence after the voice (seconds)
+
+
+def speed_for(cid):
+    if "-name-" in cid or "-sound-" in cid:
+        return SLOW_LETTER
+    return SLOW_WORD
 
 
 def main():
@@ -40,7 +54,8 @@ def main():
             sys.exit("ERROR: {} already exists. Refusing to overwrite.".format(target))
 
         spoken = SPOKEN.get(cid, clip["text"]) + "."
-        print("Generating {}/{}: {} -> {!r}".format(i, len(clips), cid, spoken))
+        speed = speed_for(cid)
+        print("Generating {}/{}: {} -> {!r} (speed {})".format(i, len(clips), cid, spoken, speed))
 
         with tempfile.TemporaryDirectory() as tmp:
             wav = Path(tmp) / "clip.wav"
@@ -51,8 +66,13 @@ def main():
             )
             if r.returncode != 0 or not wav.exists():
                 sys.exit("ERROR piper {}: {}".format(cid, r.stderr.decode("utf-8", "replace")[-500:]))
+
+            audio_filter = "atempo={},adelay={}:all=1,apad=pad_dur={}".format(
+                speed, LEAD_MS, TAIL_SEC
+            )
             r = subprocess.run(
                 ["ffmpeg", "-n", "-loglevel", "error", "-i", str(wav),
+                 "-af", audio_filter,
                  "-codec:a", "libmp3lame", "-q:a", "2", str(target)],
                 capture_output=True,
             )
