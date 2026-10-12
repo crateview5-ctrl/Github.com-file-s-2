@@ -1,0 +1,42 @@
+name: Adrian Audio Piper
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg and Piper
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install piper-tts
+
+      - name: Download Piper voice
+        run: |
+          mkdir -p voices
+          BASE=https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/medium
+          curl -L -o voices/en_US-ryan-medium.onnx $BASE/en_US-ryan-medium.onnx
+          curl -L -o voices/en_US-ryan-medium.onnx.json $BASE/en_US-ryan-medium.onnx.json
+
+      - name: Generate Adrian pilot audio
+        run: python pilot/adrian/generate_piper.py
+
+      - name: Upload audio ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: adrian-audio-pilot
+          path: pilot-output/
+          if-no-files-found: error
