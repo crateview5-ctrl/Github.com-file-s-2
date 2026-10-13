@@ -3,7 +3,7 @@ const Snd = {
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = "en-US"; u.rate = rate; speechSynthesis.speak(u); } catch (e) {}
   },
   file(f, fallback) { try { const a = new Audio(f); a.play().catch(() => Snd.speak(fallback)); } catch (e) { Snd.speak(fallback); } },
-  name(x) { Snd.file("audio-name-" + x.l + ".webm", x.nameSay); },
+  name(x) { Snd.file("audio/adrian/names/adrian_" + x.U + "_name.mp3", x.nameSay); },
   sound(x) { Snd.file("audio-sound-" + x.l + ".webm", x.soundSay); },
   word(w) { Snd.file("audio-word-" + w + ".webm", w); }
 };
