@@ -55,6 +55,20 @@ const App = (() => {
 
   $("#back").onclick = () => go(screen === "lesson" ? "path" : "home");
   showStars(); go("home");
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+  if ("serviceWorker" in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register("sw.js").then(reg => {
+      reg.update();
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update(); });
+    }).catch(() => {});
+  }
+
   return { go, setTitle, setProgress, addStar, finishLesson };
 })();
