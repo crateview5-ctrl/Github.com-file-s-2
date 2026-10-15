@@ -4,7 +4,7 @@ const Snd = {
   },
   file(f, fallback) { try { const a = new Audio(f); a.play().catch(() => Snd.speak(fallback)); } catch (e) { Snd.speak(fallback); } },
   name(x) { Snd.file("audio/adrian/names/adrian_" + x.U + "_name.mp3", x.nameSay); },
-  sound(x) { Snd.file("audio-sound-" + x.l + ".webm", x.soundSay); },
+  sound(x) { Snd.file("audio/adrian/sounds/adrian_" + x.U + "_sound.mp3", x.soundSay); },
   word(w) { Snd.file("audio-word-" + w + ".webm", w); }
 };
 
