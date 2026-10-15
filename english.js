@@ -48,7 +48,6 @@ const English = (() => {
     $("#s").onclick = () => Snd.sound(x);
     view().querySelectorAll(".pic").forEach(b => b.onclick = () => Snd.word(b.dataset.w));
     $("#next").onclick = next;
-    setTimeout(() => Snd.name(x), 300);
   }
 
   function quiz(title, again, opts, pic) {
@@ -162,4 +161,4 @@ const English = (() => {
   }
 
   return { start };
-})();
+})()
