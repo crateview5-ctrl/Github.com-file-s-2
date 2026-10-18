@@ -107,6 +107,14 @@ const App = (() => {
   function setProgress(p) { $("#fill").style.width = Math.round(p * 100) + "%"; }
   function addStar() { stars++; store.set("stars", stars); showStars(); }
   function finishLesson() { store.set("lesson1", true); }
+  // Best star score per lesson. A lesson finished before this rule existed counts as already maxed,
+  // so replaying it adds no extra stars.
+  function getBest(id) {
+    const b = store.get("best_" + id, null);
+    if (b !== null) return b;
+    return id === "english-1" && store.get("lesson1", false) ? 1e9 : 0;
+  }
+  function setBest(id, n) { store.set("best_" + id, n); }
 
   $("#back").onclick = () => go(screen === "lesson" ? "path" : "home");
   showStars(); go("home");
@@ -125,5 +133,5 @@ const App = (() => {
     }).catch(() => {});
   }
 
-  return { go, setTitle, setProgress, addStar, finishLesson };
+  return { go, setTitle, setProgress, addStar, finishLesson, getBest, setBest };
 })();
