@@ -90,7 +90,7 @@ const English = (() => {
   function qSound({ x }) {
     const up = Math.random() < 0.5;
     const opts = shuffle([x, ...others(x)]).map(y => ({ label: lc(y, up), ok: y === x }));
-    quiz("Listen. Which letter makes this sound?", () => Snd.sound(x), opts);
+    quiz("Listen. Which letter makes this sound?", () => Snd.quiz(x), opts);
   }
 
   function qPic({ x, word }) {
