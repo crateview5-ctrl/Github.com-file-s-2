@@ -50,7 +50,9 @@ const English = (() => {
     $("#next").onclick = next;
   }
 
-  function quiz(title, again, opts, pic) {
+  // first (optional): what plays automatically when the question appears.
+  // again: what the "Listen again" button plays.
+  function quiz(title, again, opts, pic, first) {
     possible++;
     view().innerHTML = `
     <div class="card">
@@ -61,7 +63,7 @@ const English = (() => {
       <p id="fb" class="fb" aria-live="polite"></p>
     </div>`;
     $("#again").onclick = again;
-    setTimeout(again, 300);
+    setTimeout(first || again, 300);
     let tried = false, done = false;
     view().querySelectorAll(".opt").forEach(b => b.onclick = () => {
       if (done) return;
@@ -93,9 +95,18 @@ const English = (() => {
     quiz("Listen. Which letter makes this sound?", () => Snd.quiz(x), opts);
   }
 
+  // The question no longer names the word, so the child has to look at the picture.
+  // When the question appears: the teacher asks the question, then says the word.
+  // "Listen again" and wrong answers: the teacher just says the word.
   function qPic({ x, word }) {
     const opts = shuffle([x, ...others(x)]).map(y => ({ label: `${lc(y, true)}${lc(y, false)}`, ok: y === x }));
-    quiz(`Which letter does <b>${word.w}</b> start with?`, () => { Snd.word(word.w); }, opts, word.e);
+    quiz(
+      "Which letter does this picture start with?",
+      () => Snd.word(word.w),
+      opts,
+      word.e,
+      () => Snd.quizPicture(() => Snd.word(word.w))
+    );
   }
 
   function match() {
@@ -148,16 +159,20 @@ const English = (() => {
 
   function done() {
     App.finishLesson();
+    // Next level stays locked until a next lesson exists (LESSON2 will be added later).
+    const hasNext = typeof LESSON2 !== "undefined";
     view().innerHTML = `
     <div class="card">
       <div class="emoji">🌟</div>
       <p class="q">Lesson 1 complete!</p>
       <p class="say">You got <b>${earned}</b> out of <b>${possible}</b> stars on your first try. Every try helps you learn.</p>
-      <button class="btn go" id="again">🔁 Practise again</button>
-      <button class="btn" id="path">Back to English path</button>
+      <button class="btn" id="again">🔁 Practice again</button>
+      ${hasNext
+        ? `<button class="btn go" id="nextlevel">➡️ Next level</button>`
+        : `<button class="btn go" disabled>🔒 Next level<small>Coming soon</small></button>`}
     </div>`;
     $("#again").onclick = start;
-    $("#path").onclick = () => App.go("path");
+    if (hasNext) $("#nextlevel").onclick = () => App.go("path");
   }
 
   return { start };
