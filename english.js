@@ -5,7 +5,7 @@ const English = (() => {
   const shuffle = a => [...a].sort(() => Math.random() - 0.5);
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const lc = (x, up) => `<span style="color:${x.color}">${up ? x.U : x.l}</span>`;
-  let steps = [], i = 0, earned = 0, possible = 0;
+  let steps = [], i = 0, earned = 0, possible = 0, best = 0;
 
   function build() {
     const s = [];
@@ -19,7 +19,13 @@ const English = (() => {
     return s;
   }
 
-  function start() { steps = build(); i = 0; earned = 0; possible = 0; render(); }
+  function start() { steps = build(); i = 0; earned = 0; possible = 0; best = App.getBest(LESSON1.id); render(); }
+  // Stars only go up when the child beats their best score for this lesson.
+  // Playing the same lesson again never adds the same stars twice.
+  function win() {
+    earned++;
+    if (earned > best) { best = earned; App.setBest(LESSON1.id, best); App.addStar(); }
+  }
   function next() { i++; render(); }
   function fb(msg, good) { const f = $("#fb"); if (f) { f.textContent = msg; f.className = "fb " + (good ? "good" : "oops"); } }
 
@@ -69,7 +75,7 @@ const English = (() => {
       if (done) return;
       if (opts[b.dataset.k].ok) {
         done = true;
-        if (!tried) { earned++; App.addStar(); }
+        if (!tried) { win(); }
         b.classList.add("good");
         fb(tried ? "You got it! 🎉" : "Great job! ⭐", true);
         setTimeout(next, 1200);
@@ -131,7 +137,7 @@ const English = (() => {
         sel.classList.remove("sel"); sel.classList.add("good"); b.classList.add("good"); sel = null; found++;
         fb("Yes! A pair! 🎉", true);
         if (found === L.length) {
-          if (slips === 0) { earned++; App.addStar(); }
+          if (slips === 0) { win(); }
           fb("All matched! ⭐", true); setTimeout(next, 1200);
         }
       } else {
@@ -177,3 +183,4 @@ const English = (() => {
 
   return { start };
 })()
+
