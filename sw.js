@@ -1,4 +1,4 @@
-const CACHE = "brightsteps-v6";
+const CACHE = "brightsteps-v7";
 const FILES = ["./", "index.html", "style.css", "app.js", "english.js", "lessons.js", "manifest.json", "icon-192.png", "icon-512.png", "recorder.html"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
