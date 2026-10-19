@@ -1,11 +1,10 @@
 const English = (() => {
-  const L = LESSON1.letters;
   const $ = s => document.querySelector(s);
   const view = () => $("#view");
   const shuffle = a => [...a].sort(() => Math.random() - 0.5);
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const lc = (x, up) => `<span style="color:${x.color}">${up ? x.U : x.l}</span>`;
-  let steps = [], i = 0, earned = 0, possible = 0, best = 0;
+  let lesson = null, L = [], steps = [], i = 0, earned = 0, possible = 0, best = 0;
 
   function build() {
     const s = [];
@@ -19,12 +18,17 @@ const English = (() => {
     return s;
   }
 
-  function start() { steps = build(); i = 0; earned = 0; possible = 0; best = App.getBest(LESSON1.id); render(); }
+  function start(l) {
+    lesson = l || lesson || LESSONS[0];
+    L = lesson.letters;
+    steps = build(); i = 0; earned = 0; possible = 0;
+    best = App.getBest(lesson.id);
+    render();
+  }
   // Stars only go up when the child beats their best score for this lesson.
-  // Playing the same lesson again never adds the same stars twice.
   function win() {
     earned++;
-    if (earned > best) { best = earned; App.setBest(LESSON1.id, best); App.addStar(); }
+    if (earned > best) { best = earned; App.setBest(lesson.id, best); App.addStar(); }
   }
   function next() { i++; render(); }
   function fb(msg, good) { const f = $("#fb"); if (f) { f.textContent = msg; f.className = "fb " + (good ? "good" : "oops"); } }
@@ -32,7 +36,7 @@ const English = (() => {
   function render() {
     const st = steps[i];
     App.setProgress(i / (steps.length - 1));
-    App.setTitle(LESSON1.title);
+    App.setTitle(lesson.title);
     ({ learn, qName, qSound, match, qPic, repeat, done })[st.t](st);
   }
 
@@ -87,7 +91,12 @@ const English = (() => {
     });
   }
 
-  function others(x) { return shuffle(L.filter(y => y !== x)); }
+  // Two wrong choices. If this level has fewer than 3 letters (Y, Z), borrow from other levels.
+  function others(x) {
+    const own = shuffle(L.filter(y => y !== x));
+    const extra = shuffle(ALL_LETTERS.filter(y => !L.includes(y)));
+    return own.concat(extra).slice(0, 2);
+  }
 
   function qName({ x }) {
     const up = Math.random() < 0.5;
@@ -101,9 +110,6 @@ const English = (() => {
     quiz("Listen. Which letter makes this sound?", () => Snd.quiz(x), opts);
   }
 
-  // The question no longer names the word, so the child has to look at the picture.
-  // When the question appears: the teacher asks the question, then says the word.
-  // "Listen again" and wrong answers: the teacher just says the word.
   function qPic({ x, word }) {
     const opts = shuffle([x, ...others(x)]).map(y => ({ label: `${lc(y, true)}${lc(y, false)}`, ok: y === x }));
     quiz(
@@ -164,23 +170,22 @@ const English = (() => {
   }
 
   function done() {
-    App.finishLesson();
-    // Next level stays locked until a next lesson exists (LESSON2 will be added later).
-    const hasNext = typeof LESSON2 !== "undefined";
+    App.finishLesson(lesson.id);
+    const n = LESSONS.indexOf(lesson);
+    const nxt = LESSONS[n + 1];
     view().innerHTML = `
     <div class="card">
       <div class="emoji">🌟</div>
-      <p class="q">Lesson 1 complete!</p>
-      <p class="say">You got <b>${earned}</b> out of <b>${possible}</b> stars on your first try. Every try helps you learn.</p>
+      <p class="q">${nxt ? "Level " + (n + 1) + " complete!" : "You finished every letter! 🎉"}</p>
+      <p class="say">You got <b>${earned}</b> out of <b>${possible}</b> stars on this try. Every try helps you learn.</p>
       <button class="btn" id="again">🔁 Practice again</button>
-      ${hasNext
-        ? `<button class="btn go" id="nextlevel">➡️ Next level</button>`
-        : `<button class="btn go" disabled>🔒 Next level<small>Coming soon</small></button>`}
+      ${nxt
+        ? `<button class="btn go" id="nextlevel">➡️ Next level<small>${nxt.title}</small></button>`
+        : `<button class="btn go" id="nextlevel">🏠 Back to levels</button>`}
     </div>`;
-    $("#again").onclick = start;
-    if (hasNext) $("#nextlevel").onclick = () => App.go("path");
+    $("#again").onclick = () => start(lesson);
+    $("#nextlevel").onclick = () => nxt ? App.open(nxt) : App.go("path");
   }
 
   return { start };
-})()
-
+})();
