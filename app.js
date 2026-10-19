@@ -14,8 +14,7 @@ const WORD_TIME = {
   yoyo: "17_01_47", yak: "17_02_21", zebra: "17_02_52", zip: "17_04_09"
 };
 // The clip "Which letter does this picture start with?"
-// After you upload it, paste its full file name here, for example:
-// "audio/adrian/words/ElevenLabs_2026-10-18T17_30_00_Chris - Warm, Resonant, Thoughtful_pvc_sp100_s50_sb75_v3.mp3"
+// PASTE its full file name between the quotes below (the same one you used before).
 // While this is empty, the phone's built-in voice asks the question instead.
 const QUIZ_PICTURE_AUDIO = "";
 
@@ -70,7 +69,7 @@ const store = {
 
 const App = (() => {
   const $ = s => document.querySelector(s);
-  let stars = store.get("stars", 0), screen = "home";
+  let stars = store.get("stars", 0), screen = "home", current = null;
   const showStars = () => { $("#stars").textContent = "⭐ " + stars; };
 
   function go(name) {
@@ -79,9 +78,11 @@ const App = (() => {
     $("#progress").hidden = name !== "lesson";
     if (name === "home") home();
     else if (name === "path") path();
-    else if (name === "lesson") English.start();
+    else if (name === "lesson") English.start(current);
     window.scrollTo(0, 0);
   }
+
+  function open(lesson) { current = lesson; go("lesson"); }
 
   function home() {
     setTitle("BrightSteps");
@@ -93,21 +94,28 @@ const App = (() => {
     $("#en").onclick = () => go("path");
   }
 
+  // A level opens when the level before it is finished.
   function path() {
     setTitle("English & Reading");
-    const done = store.get("lesson1", false);
-    $("#view").innerHTML = `
-    <div class="card hello"><p class="q">Your English path</p></div>
-    <button class="big en" id="l1"><b>${done ? "✅" : "🔤"}</b><span>Lesson 1: Letters A, B, C<small>Names, sounds, pictures and games</small></span></button>
-    <button class="big soon" disabled><b>🔒</b><span>Lesson 2<small>Coming soon</small></span></button>`;
-    $("#l1").onclick = () => go("lesson");
+    let html = `<div class="card hello"><p class="q">Your English path</p></div>`;
+    LESSONS.forEach((l, k) => {
+      const unlocked = k === 0 || isDone(LESSONS[k - 1].id);
+      html += unlocked
+        ? `<button class="big en lv" data-k="${k}"><b>${isDone(l.id) ? "✅" : "🔤"}</b><span>Level ${k + 1}: ${l.title}<small>Names, sounds, pictures and games</small></span></button>`
+        : `<button class="big soon" disabled><b>🔒</b><span>Level ${k + 1}: ${l.title}<small>Finish the level before this one</small></span></button>`;
+    });
+    $("#view").innerHTML = html;
+    document.querySelectorAll(".lv").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
   }
 
   function setTitle(t) { $("#title").textContent = t; }
   function setProgress(p) { $("#fill").style.width = Math.round(p * 100) + "%"; }
   function addStar() { stars++; store.set("stars", stars); showStars(); }
-  function finishLesson() { store.set("lesson1", true); }
-  // Best star score per lesson. A lesson finished before this rule existed counts as already maxed,
+
+  // Level 1 was finished before levels existed under the old name "lesson1", so both count.
+  function isDone(id) { return store.get("done_" + id, false) || (id === "english-1" && store.get("lesson1", false)); }
+  function finishLesson(id) { store.set("done_" + id, true); if (id === "english-1") store.set("lesson1", true); }
+  // Best star score per level. A level finished before this rule existed counts as already maxed,
   // so replaying it adds no extra stars.
   function getBest(id) {
     const b = store.get("best_" + id, null);
@@ -133,5 +141,5 @@ const App = (() => {
     }).catch(() => {});
   }
 
-  return { go, setTitle, setProgress, addStar, finishLesson, getBest, setBest };
+  return { go, open, setTitle, setProgress, addStar, finishLesson, isDone, getBest, setBest };
 })();
