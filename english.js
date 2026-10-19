@@ -2,17 +2,17 @@ const English = (() => {
   const $ = s => document.querySelector(s);
   const view = () => $("#view");
   const shuffle = a => [...a].sort(() => Math.random() - 0.5);
-  const pick = a => a[Math.floor(Math.random() * a.length)];
   const lc = (x, up) => `<span style="color:${x.color}">${up ? x.U : x.l}</span>`;
   let lesson = null, L = [], steps = [], i = 0, earned = 0, possible = 0, best = 0;
 
+  // Alphabet levels: only the letter name and the letter sound. No picture words here.
+  // (Picture words stay in lessons.js for the Word Building section later.)
   function build() {
     const s = [];
     L.forEach(x => s.push({ t: "learn", x }));
     shuffle(L).forEach(x => s.push({ t: "qName", x }));
     shuffle(L).forEach(x => s.push({ t: "qSound", x }));
     s.push({ t: "match" });
-    shuffle(L).forEach(x => s.push({ t: "qPic", x, word: pick(x.words) }));
     L.forEach(x => s.push({ t: "repeat", x }));
     s.push({ t: "done" });
     return s;
@@ -37,7 +37,7 @@ const English = (() => {
     const st = steps[i];
     App.setProgress(i / (steps.length - 1));
     App.setTitle(lesson.title);
-    ({ learn, qName, qSound, match, qPic, repeat, done })[st.t](st);
+    ({ learn, qName, qSound, match, repeat, done })[st.t](st);
   }
 
   function nextBtn(label) { return `<button class="btn go" id="next">${label || "Next"}</button>`; }
@@ -45,18 +45,16 @@ const English = (() => {
   function learn({ x }) {
     view().innerHTML = `
     <div class="card">
-      <p class="q">Meet the letter</p>
+      <p class="q">This is the letter ${x.U}</p>
       <div class="tile" style="background:${x.color}"><span>${x.U}</span><span>${x.l}</span></div>
       <div class="two">
         <button class="btn" id="n">🔤 Hear the name<small>${x.U} is called “${x.nameSay}”</small></button>
-        <button class="btn alt" id="s">🔊 Hear the sound<small>${x.hint}</small></button>
+        <button class="btn alt" id="s">🔊 Hear the sound<small>${x.U} says “${x.soundSay}”</small></button>
       </div>
-      <div class="pics">${x.words.map(w => `<button class="pic" data-w="${w.w}"><b>${w.e}</b>${w.w}</button>`).join("")}</div>
       ${nextBtn()}
     </div>`;
     $("#n").onclick = () => Snd.name(x);
     $("#s").onclick = () => Snd.sound(x);
-    view().querySelectorAll(".pic").forEach(b => b.onclick = () => Snd.word(b.dataset.w));
     $("#next").onclick = next;
   }
 
@@ -110,17 +108,6 @@ const English = (() => {
     quiz("Listen. Which letter makes this sound?", () => Snd.quiz(x), opts);
   }
 
-  function qPic({ x, word }) {
-    const opts = shuffle([x, ...others(x)]).map(y => ({ label: `${lc(y, true)}${lc(y, false)}`, ok: y === x }));
-    quiz(
-      "Which letter does this picture start with?",
-      () => Snd.word(word.w),
-      opts,
-      word.e,
-      () => Snd.quizPicture(() => Snd.word(word.w))
-    );
-  }
-
   function match() {
     possible++;
     const ups = shuffle(L), lows = shuffle(L);
@@ -160,7 +147,7 @@ const English = (() => {
       <div class="tile" style="background:${x.color}"><span>${x.U}</span><span>${x.l}</span></div>
       <p class="say">Name: <b>“${x.nameSay}”</b></p>
       <button class="btn" id="n">🔤 Hear the name</button>
-      <p class="say">Sound: <b>${x.hint}</b></p>
+      <p class="say">Sound: <b>${x.U} says “${x.soundSay}”</b></p>
       <button class="btn alt" id="s">🔊 Hear the sound</button>
       ${nextBtn("I said both ✅")}
     </div>`;
