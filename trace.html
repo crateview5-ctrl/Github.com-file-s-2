@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Trace A</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#c98f55 repeating-linear-gradient(90deg,#c98f55 0 90px,#bf8349 90px 94px);font-family:system-ui,sans-serif}
+.book{width:min(92vw,380px);background:#f6f3ef;border-radius:8px;box-shadow:0 6px 0 #8a5a2b,0 10px 20px #0005;overflow:hidden}
+.top{background:#3d7fb5;padding:12px;display:flex;justify-content:center;gap:34px;font-size:38px}
+.star{filter:grayscale(1) opacity(.45);transition:.3s}
+.star.on{filter:none;transform:scale(1.2)}
+canvas{display:block;width:100%;aspect-ratio:1;touch-action:none}
+#msg{text-align:center;font-size:19px;padding:8px;min-height:28px;color:#345}
+button{margin:14px;padding:10px 22px;font-size:18px;border:0;border-radius:20px;background:#fff;box-shadow:0 3px 0 #8a5a2b}
+</style></head><body>
+<div class="book">
+<div class="top"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
+<canvas id="c"></canvas>
+<div id="msg"></div>
+</div>
+<button onclick="reset()">Dobara 🔄</button>
+<script>
+// Har letter ki lines (400x400 ke andar). Baad mein B, C, a, b, c yahin add honge.
+const LETTERS={A:[[[200,70],[110,330]],[[200,70],[290,330]],[[143,235],[257,235]]]};
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+cv.width=cv.height=400;
+const msg=document.getElementById('msg'),stars=[...document.querySelectorAll('.star')];
+let L='A',strokes,cur,prog,drawing,off;
+
+function build(p){const len=[0];for(let i=1;i<p.length;i++)len.push(len[i-1]+Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]));return{pts:p,len,total:len[len.length-1]}}
+function reset(){strokes=LETTERS[L].map(build);cur=0;prog=0;drawing=false;off=false;stars.forEach(s=>s.classList.remove('on'));msg.textContent='Chamakte dot par ungli rakho 👆'}
+function at(s,d){for(let i=1;i<s.pts.length;i++){if(d<=s.len[i]||i==s.pts.length-1){const k=Math.max(0,Math.min(1,(d-s.len[i-1])/(s.len[i]-s.len[i-1])));const a=s.pts[i-1],b=s.pts[i];return[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k]}}}
+function nearest(s,p){let best={d:1e9,t:0};for(let i=1;i<s.pts.length;i++){const a=s.pts[i-1],b=s.pts[i],dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;let k=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2;k=Math.max(0,Math.min(1,k));const d=Math.hypot(p[0]-(a[0]+dx*k),p[1]-(a[1]+dy*k));if(d<best.d)best={d,t:s.len[i-1]+k*Math.sqrt(l2)}}return best}
+function line(s,d,w,col,dash){ctx.beginPath();ctx.moveTo(s.pts[0][0],s.pts[0][1]);for(let i=1;i<s.pts.length;i++){if(s.len[i]<=d)ctx.lineTo(s.pts[i][0],s.pts[i][1]);else{const q=at(s,d);ctx.lineTo(q[0],q[1]);break}}ctx.lineWidth=w;ctx.strokeStyle=col;ctx.setLineDash(dash||[]);ctx.stroke()}
+
+function draw(ts){
+ ctx.clearRect(0,0,400,400);ctx.lineCap='round';ctx.lineJoin='round';
+ strokes.forEach(s=>line(s,s.total,48,'#e6edf5'));
+ strokes.forEach((s,i)=>{if(i<cur)line(s,s.total,16,'#2e9e5b')});
+ if(cur<strokes.length){
+  const s=strokes[cur];
+  line(s,s.total,6,'#5aa9e6',[1,16]);
+  if(prog>0)line(s,prog,16,off?'#e5533d':'#222');
+  const st=at(s,prog);ctx.setLineDash([]);
+  if(!drawing){
+   const r=15+4*Math.sin(ts/200);
+   ctx.beginPath();ctx.arc(st[0],st[1],r,0,7);ctx.fillStyle='#5aa9e6';ctx.fill();
+   ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';ctx.textAlign='center';ctx.fillText(cur+1,st[0],st[1]+6);
+  }else{
+   ctx.font='34px sans-serif';ctx.textAlign='left';ctx.fillText('✏️',st[0]+4,st[1]-4);
+  }
+ }
+ requestAnimationFrame(draw)
+}
+function pt(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*400/r.height]}
+cv.onpointerdown=e=>{
+ if(cur>=strokes.length)return;
+ const p=pt(e),st=at(strokes[cur],prog);
+ if(Math.hypot(p[0]-st[0],p[1]-st[1])<48){drawing=true;off=false;cv.setPointerCapture(e.pointerId);msg.textContent=''}
+ else msg.textContent='Chamakte dot par ungli rakho 👆'
+};
+cv.onpointermove=e=>{
+ if(!drawing)return;
+ const s=strokes[cur],n=nearest(s,pt(e));
+ off=n.d>38;
+ if(off){msg.textContent='Raste ke andar rehna 🙂';return}
+ msg.textContent='';
+ if(n.t>prog&&n.t<prog+120)prog=n.t;
+ if(prog>=s.total*0.93){
+  cur++;prog=0;drawing=false;off=false;
+  const n2=Math.floor(cur*3/strokes.length);
+  stars.forEach((x,i)=>x.classList.toggle('on',i<n2));
+  if(navigator.vibrate)navigator.vibrate(40);
+  msg.textContent=cur>=strokes.length?'Shabash! 🎉':'Wah! Ab agli line ➡️';
+ }
+};
+cv.onpointerup=cv.onpointercancel=()=>{if(drawing){drawing=false;off=false;msg.textContent='Wahin se dobara shuru karo 👆'}};
+reset();requestAnimationFrame(draw);
+</script></body></html>
