@@ -75,14 +75,16 @@ const App = (() => {
   function go(name) {
     screen = name;
     $("#back").hidden = name === "home";
-    $("#progress").hidden = name !== "lesson";
+    $("#progress").hidden = !(name === "lesson" || name === "write");
     if (name === "home") home();
     else if (name === "path") path();
     else if (name === "lesson") English.start(current);
+    else if (name === "write") Writing.start(current);
     window.scrollTo(0, 0);
   }
 
   function open(lesson) { current = lesson; go("lesson"); }
+  function openWriting(lesson) { current = lesson; go("write"); }
 
   function home() {
     setTitle("BrightSteps");
@@ -104,8 +106,23 @@ const App = (() => {
         ? `<button class="big en lv" data-k="${k}"><b>${isDone(l.id) ? "✅" : "🔤"}</b><span>Level ${k + 1}: ${l.title}<small>Names, sounds, pictures and games</small></span></button>`
         : `<button class="big soon" disabled><b>🔒</b><span>Level ${k + 1}: ${l.title}<small>Finish the level before this one</small></span></button>`;
     });
+
+    // Alphabet Writing: opens after the matching Sounds level and the writing level before it.
+    html += `<div class="card hello"><p class="q">Alphabet Writing ✏️</p></div>`;
+    let more = false;
+    LESSONS.forEach((l, k) => {
+      if (!Writing.ready(l)) { more = true; return; }
+      const soundsDone = isDone(l.id);
+      const prevOk = k === 0 || isWDone(LESSONS[k - 1].id);
+      html += (soundsDone && prevOk)
+        ? `<button class="big en wv" data-k="${k}"><b>${isWDone(l.id) ? "✅" : "✏️"}</b><span>Writing ${k + 1}: ${l.title}<small>Find the letters, then write them</small></span></button>`
+        : `<button class="big soon" disabled><b>🔒</b><span>Writing ${k + 1}: ${l.title}<small>${soundsDone ? "Finish the writing level before this one" : "Finish the Sounds level first"}</small></span></button>`;
+    });
+    if (more) html += `<button class="big soon" disabled><b>✏️</b><span>More letters<small>Coming soon</small></span></button>`;
+
     $("#view").innerHTML = html;
     document.querySelectorAll(".lv").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
+    document.querySelectorAll(".wv").forEach(b => b.onclick = () => openWriting(LESSONS[b.dataset.k]));
   }
 
   function setTitle(t) { $("#title").textContent = t; }
@@ -115,6 +132,9 @@ const App = (() => {
   // Level 1 was finished before levels existed under the old name "lesson1", so both count.
   function isDone(id) { return store.get("done_" + id, false) || (id === "english-1" && store.get("lesson1", false)); }
   function finishLesson(id) { store.set("done_" + id, true); if (id === "english-1") store.set("lesson1", true); }
+  // Writing levels: one star the first time a level is finished, none for repeats.
+  function isWDone(id) { return store.get("wdone_" + id, false); }
+  function finishWriting(id) { if (!isWDone(id)) { store.set("wdone_" + id, true); addStar(); } }
   // Best star score per level. A level finished before this rule existed counts as already maxed,
   // so replaying it adds no extra stars.
   function getBest(id) {
@@ -124,7 +144,7 @@ const App = (() => {
   }
   function setBest(id, n) { store.set("best_" + id, n); }
 
-  $("#back").onclick = () => go(screen === "lesson" ? "path" : "home");
+  $("#back").onclick = () => go(screen === "lesson" || screen === "write" ? "path" : "home");
   showStars(); go("home");
 
   if ("serviceWorker" in navigator) {
@@ -141,5 +161,5 @@ const App = (() => {
     }).catch(() => {});
   }
 
-  return { go, open, setTitle, setProgress, addStar, finishLesson, isDone, getBest, setBest };
+  return { go, open, openWriting, setTitle, setProgress, addStar, finishLesson, isDone, finishWriting, isWDone, getBest, setBest };
 })();
