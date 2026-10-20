@@ -72,12 +72,24 @@ const App = (() => {
   let stars = store.get("stars", 0), screen = "home", current = null;
   const showStars = () => { $("#stars").textContent = "⭐ " + stars; };
 
+  // Screens: home -> english (two cards) -> sounds (levels) -> lesson
+  //                                      -> writing (levels) -> write
+  // go("path") means "back to the list I came from", so lesson/writing files
+  // that still say go("path") land on the right list.
+  const BACK = { english: "home", sounds: "english", writing: "english", lesson: "sounds", write: "writing" };
+
   function go(name) {
+    if (name === "path") {
+      name = (screen === "write" || screen === "writing") ? "writing"
+        : (screen === "lesson" || screen === "sounds") ? "sounds" : "english";
+    }
     screen = name;
     $("#back").hidden = name === "home";
     $("#progress").hidden = !(name === "lesson" || name === "write");
     if (name === "home") home();
-    else if (name === "path") path();
+    else if (name === "english") english();
+    else if (name === "sounds") sounds();
+    else if (name === "writing") writing();
     else if (name === "lesson") English.start(current);
     else if (name === "write") Writing.start(current);
     window.scrollTo(0, 0);
@@ -93,22 +105,42 @@ const App = (() => {
     <button class="big en" id="en"><b>📖</b><span>English &amp; Reading</span></button>
     <button class="big soon" disabled><b>🔢</b><span>Maths<small>Coming soon</small></span></button>
     <button class="big soon" disabled><b>🤖</b><span>AI Learning Buddy<small>Coming soon</small></span></button>`;
-    $("#en").onclick = () => go("path");
+    $("#en").onclick = () => go("english");
   }
 
-  // A level opens when the level before it is finished.
-  function path() {
+  // Window 2: only the two sections.
+  function english() {
     setTitle("English & Reading");
-    let html = `<div class="card hello"><p class="q">Your English path</p></div>`;
+    const soundsDone = LESSONS.filter(l => isDone(l.id)).length;
+    const wLessons = LESSONS.filter(l => Writing.ready(l));
+    const writingDone = wLessons.filter(l => isWDone(l.id)).length;
+    $("#view").innerHTML = `
+    <div class="card hello"><p class="q">Your English path</p></div>
+    <button class="big en" id="sn"><b>🔤</b><span>Alphabet Sounds<small>Names and sounds · ${soundsDone} of ${LESSONS.length} levels done</small></span></button>
+    <button class="big en" id="wr"><b>✏️</b><span>Alphabet Writing<small>Find the letters, then write them · ${writingDone} of ${wLessons.length} levels done</small></span></button>`;
+    $("#sn").onclick = () => go("sounds");
+    $("#wr").onclick = () => go("writing");
+  }
+
+  // Window 3a: Sounds levels. A level opens when the level before it is finished.
+  function sounds() {
+    setTitle("Alphabet Sounds");
+    let html = `<div class="card hello"><p class="q">Choose a level</p></div>`;
     LESSONS.forEach((l, k) => {
       const unlocked = k === 0 || isDone(LESSONS[k - 1].id);
       html += unlocked
-        ? `<button class="big en lv" data-k="${k}"><b>${isDone(l.id) ? "✅" : "🔤"}</b><span>Level ${k + 1}: ${l.title}<small>Names, sounds, pictures and games</small></span></button>`
+        ? `<button class="big en lv" data-k="${k}"><b>${isDone(l.id) ? "✅" : "🔤"}</b><span>Level ${k + 1}: ${l.title}<small>Names, sounds and games</small></span></button>`
         : `<button class="big soon" disabled><b>🔒</b><span>Level ${k + 1}: ${l.title}<small>Finish the level before this one</small></span></button>`;
     });
+    $("#view").innerHTML = html;
+    document.querySelectorAll(".lv").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
+  }
 
-    // Alphabet Writing: opens after the matching Sounds level and the writing level before it.
-    html += `<div class="card hello"><p class="q">Alphabet Writing ✏️</p></div>`;
+  // Window 3b: Writing levels. A level opens after the matching Sounds level
+  // and the writing level before it.
+  function writing() {
+    setTitle("Alphabet Writing");
+    let html = `<div class="card hello"><p class="q">Choose a level</p></div>`;
     let more = false;
     LESSONS.forEach((l, k) => {
       if (!Writing.ready(l)) { more = true; return; }
@@ -119,9 +151,7 @@ const App = (() => {
         : `<button class="big soon" disabled><b>🔒</b><span>Writing ${k + 1}: ${l.title}<small>${soundsDone ? "Finish the writing level before this one" : "Finish the Sounds level first"}</small></span></button>`;
     });
     if (more) html += `<button class="big soon" disabled><b>✏️</b><span>More letters<small>Coming soon</small></span></button>`;
-
     $("#view").innerHTML = html;
-    document.querySelectorAll(".lv").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
     document.querySelectorAll(".wv").forEach(b => b.onclick = () => openWriting(LESSONS[b.dataset.k]));
   }
 
@@ -144,7 +174,7 @@ const App = (() => {
   }
   function setBest(id, n) { store.set("best_" + id, n); }
 
-  $("#back").onclick = () => go(screen === "lesson" || screen === "write" ? "path" : "home");
+  $("#back").onclick = () => go(BACK[screen] || "home");
   showStars(); go("home");
 
   if ("serviceWorker" in navigator) {
