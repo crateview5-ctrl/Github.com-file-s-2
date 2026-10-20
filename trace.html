@@ -1,24 +1,31 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Trace the letter A</title>
+<title>Find and trace the letter</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,sans-serif;
 background:radial-gradient(circle at 50% 40%,transparent 35%,rgba(0,0,0,.4)),repeating-linear-gradient(90deg,#c98f55 0 90px,#bf8349 90px 94px)}
+.hide{display:none!important}
 .scene{width:min(92vw,380px);animation:enter .9s cubic-bezier(.2,.9,.3,1.2) both}
 @keyframes enter{from{transform:perspective(900px) rotateX(35deg) translateY(60px) scale(.9);opacity:0}to{transform:none;opacity:1}}
-.cover{position:relative;background:linear-gradient(135deg,#eb9a42,#c26d1b);padding:28px 12px 14px;border-radius:16px;
-box-shadow:0 12px 0 #8d4d10,0 26px 30px rgba(0,0,0,.5),inset 0 2px 0 rgba(255,255,255,.35)}
+.cover{position:relative;background:linear-gradient(135deg,#eb9a42,#c26d1b);padding:28px 12px 14px;border-radius:16px;box-shadow:0 12px 0 #8d4d10,0 26px 30px rgba(0,0,0,.5),inset 0 2px 0 rgba(255,255,255,.35)}
 .rings{position:absolute;top:8px;left:0;right:0;display:flex;justify-content:space-around;padding:0 26px;z-index:3}
 .rings i{width:15px;height:40px;border-radius:8px;background:linear-gradient(90deg,#6d6d6d,#fff 45%,#9a9a9a);box-shadow:2px 5px 5px rgba(0,0,0,.45)}
-.paper{position:relative;background:#fbf9f5;border-radius:4px 4px 6px 6px;overflow:hidden;
-box-shadow:0 2px 0 #fff,0 4px 0 #ddd,0 6px 0 #fff,0 8px 0 #ccc,0 12px 14px rgba(0,0,0,.35)}
+.paper{position:relative;background:#fbf9f5;border-radius:4px 4px 6px 6px;overflow:hidden;box-shadow:0 2px 0 #fff,0 4px 0 #ddd,0 6px 0 #fff,0 8px 0 #ccc,0 12px 14px rgba(0,0,0,.35)}
 .top{background:linear-gradient(#4a90c9,#2f6fa3);padding:20px 12px 10px;display:flex;justify-content:center;gap:34px;font-size:38px;box-shadow:inset 0 -6px 8px rgba(0,0,0,.25)}
 .star{filter:grayscale(1) opacity(.4) drop-shadow(0 3px 2px rgba(0,0,0,.4));transition:.3s}
 .star.on{filter:drop-shadow(0 4px 4px rgba(0,0,0,.5));animation:pop .6s}
 @keyframes pop{0%{transform:scale(.3) rotate(-40deg)}60%{transform:scale(1.5) rotate(10deg)}100%{transform:scale(1.15)}}
-canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;
-background:repeating-linear-gradient(transparent 0 38px,rgba(90,140,200,.13) 38px 40px)}
+#find{padding:14px 16px 4px;background:repeating-linear-gradient(transparent 0 38px,rgba(90,140,200,.13) 38px 40px)}
+#ask{text-align:center;font-size:21px;font-weight:700;color:#2b4c7e;margin-bottom:12px}
+#ask button{margin:0 0 0 8px;padding:4px 10px;font-size:18px;box-shadow:0 3px 0 #b9c4d6}
+#grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-bottom:12px}
+.card{aspect-ratio:1;border:0;border-radius:14px;background:#fff;font-size:64px;font-weight:700;font-family:Andika,'Comic Sans MS',system-ui,sans-serif;color:#2b4c7e;margin:0;padding:0;box-shadow:0 6px 0 #b9c4d6,0 10px 12px rgba(0,0,0,.25);transition:.2s}
+.card:active{transform:translateY(4px);box-shadow:0 2px 0 #b9c4d6}
+.card.ok{background:#2fbf70;color:#fff;box-shadow:0 6px 0 #17874a;transform:scale(.92) rotate(-3deg)}
+.card.bad{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;background:repeating-linear-gradient(transparent 0 38px,rgba(90,140,200,.13) 38px 40px)}
 #msg{text-align:center;font-size:19px;padding:8px;min-height:40px;color:#345;background:#fbf9f5}
 button{margin:22px 0 10px;padding:12px 26px;font-size:18px;font-weight:600;border:0;border-radius:22px;background:#fff;color:#7a4513;box-shadow:0 5px 0 #8d4d10,0 8px 10px rgba(0,0,0,.4)}
 button:active{transform:translateY(3px);box-shadow:0 2px 0 #8d4d10}
@@ -27,46 +34,70 @@ button:active{transform:translateY(3px);box-shadow:0 2px 0 #8d4d10}
 <div class="rings"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div class="paper">
 <div class="top"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div>
-<canvas id="c"></canvas>
+<div id="find"><div id="ask"></div><div id="grid"></div></div>
+<canvas id="c" class="hide"></canvas>
 <div id="msg"></div>
 </div></div></div>
-<button onclick="reset()">Try again 🔄</button>
+<button onclick="startFind()">Start again 🔄</button>
 <script>
-// Letter lines inside a 400x400 box. B, C, a, b, c will be added here later.
-const LETTERS={A:[[[200,70],[110,330]],[[200,70],[290,330]],[[143,235],[257,235]]]};
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-cv.width=cv.height=400;
-const msg=document.getElementById('msg'),stars=[...document.querySelectorAll('.star')];
-let L='A',strokes,cur,prog,drawing,off,parts=[];
+// ---------- Sounds ----------
+let ac;function AC(){return ac=ac||new(window.AudioContext||window.webkitAudioContext)()}
+function tone(f,d,t,v,w){const a=AC(),o=a.createOscillator(),g=a.createGain();o.type=t;o.frequency.value=f;o.connect(g);g.connect(a.destination);const s=a.currentTime+(w||0);g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.001,s+d);o.start(s);o.stop(s+d)}
+function good(){[660,880,1100].forEach((f,i)=>tone(f,.25,'triangle',.15,i*.09))}
+function bad(){tone(180,.25,'sawtooth',.08)}
+let lastS=0;
+function scratch(){const n=performance.now();if(n-lastS<70)return;lastS=n;const a=AC(),b=a.createBuffer(1,2205,44100),d=b.getChannelData(0);for(let i=0;i<2205;i++)d[i]=(Math.random()*2-1)*(1-i/2205);const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();f.type='bandpass';f.frequency.value=2500;g.gain.value=.25;s.buffer=b;s.connect(f);f.connect(g);g.connect(a.destination);s.start()}
+function play(u){new Audio(u).play().catch(()=>{})}
+function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
 
+// ---------- Step 1: find the letters ----------
+const T=[['A','big'],['a','small'],['B','big'],['b','small'],['C','big'],['c','small']];
+const SAY={A:'ay',a:'ay',B:'bee',b:'bee',C:'see',c:'see'};
+const msg=document.getElementById('msg'),stars=[...document.querySelectorAll('.star')],grid=document.getElementById('grid'),ask=document.getElementById('ask'),find=document.getElementById('find'),cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let qi=0;
+function setStars(n){stars.forEach((x,i)=>x.classList.toggle('on',i<n))}
+function askNow(){const q=T[qi];ask.innerHTML='Find the '+q[1]+' letter <b>'+q[0]+'</b><button onclick="speak(say())">🔊</button>';speak(say())}
+function say(){const q=T[qi];return 'Find the '+q[1]+' letter '+SAY[q[0]]}
+function startFind(){
+ qi=0;setStars(0);cv.classList.add('hide');find.classList.remove('hide');msg.textContent='';
+ grid.innerHTML='';
+ [...T].sort(()=>Math.random()-.5).forEach(t=>{const b=document.createElement('button');b.className='card';b.textContent=t[0];b.onclick=()=>pick(b,t[0]);grid.appendChild(b)});
+ askNow()
+}
+function pick(b,l){
+ if(b.classList.contains('ok'))return;
+ if(l===T[qi][0]){
+  b.classList.add('ok');good();qi++;setStars(Math.floor(qi*3/T.length));
+  if(qi>=T.length){msg.textContent='You found them all! Now let\'s write ✏️';speak('Great job! Now let us write.');setTimeout(startTrace,2200)}
+  else setTimeout(askNow,700)
+ }else{b.classList.add('bad');bad();msg.textContent='Try again 🙂';setTimeout(()=>b.classList.remove('bad'),400)}
+}
+
+// ---------- Step 2: trace the letter ----------
+const LETTERS={A:[[[200,70],[110,330]],[[200,70],[290,330]],[[143,235],[257,235]]]};
+cv.width=cv.height=400;
+let L='A',strokes,cur,prog,drawing,off,parts=[];
 function build(p){const len=[0];for(let i=1;i<p.length;i++)len.push(len[i-1]+Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]));return{pts:p,len,total:len[len.length-1]}}
-function reset(){strokes=LETTERS[L].map(build);cur=0;prog=0;drawing=false;off=false;stars.forEach(s=>s.classList.remove('on'));msg.textContent='Put your finger on the glowing dot 👆'}
+function startTrace(){find.classList.add('hide');cv.classList.remove('hide');strokes=LETTERS[L].map(build);cur=0;prog=0;drawing=false;off=false;setStars(0);msg.textContent='Put your finger on the glowing dot 👆'}
 function at(s,d){for(let i=1;i<s.pts.length;i++){if(d<=s.len[i]||i==s.pts.length-1){const k=Math.max(0,Math.min(1,(d-s.len[i-1])/(s.len[i]-s.len[i-1])));const a=s.pts[i-1],b=s.pts[i];return[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k]}}}
 function nearest(s,p){let best={d:1e9,t:0};for(let i=1;i<s.pts.length;i++){const a=s.pts[i-1],b=s.pts[i],dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;let k=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2;k=Math.max(0,Math.min(1,k));const d=Math.hypot(p[0]-(a[0]+dx*k),p[1]-(a[1]+dy*k));if(d<best.d)best={d,t:s.len[i-1]+k*Math.sqrt(l2)}}return best}
 function line(s,d,w,col,dash,ox,oy){ctx.save();ctx.translate(ox||0,oy||0);ctx.beginPath();ctx.moveTo(s.pts[0][0],s.pts[0][1]);for(let i=1;i<s.pts.length;i++){if(s.len[i]<=d)ctx.lineTo(s.pts[i][0],s.pts[i][1]);else{const q=at(s,d);ctx.lineTo(q[0],q[1]);break}}ctx.lineWidth=w;ctx.strokeStyle=col;ctx.setLineDash(dash||[]);ctx.stroke();ctx.restore()}
-
 function burst(x,y,n){const c=['#ffd23f','#ff8a5c','#7ee081','#4dd0e1','#fff'];for(let i=0;i<n;i++){const a=Math.random()*6.28,v=1+Math.random()*4;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,life:1,c:c[i%5],s:3+Math.random()*5})}}
 function confetti(){const c=['#ff5e5e','#ffd23f','#4dd0e1','#7ee081','#c792ea'];for(let i=0;i<90;i++)parts.push({x:Math.random()*400,y:-10-Math.random()*60,vx:(Math.random()-.5)*2,vy:2+Math.random()*3,life:2,c:c[i%5],s:4+Math.random()*6})}
 function pencil(x,y){ctx.save();ctx.translate(x,y);ctx.rotate(-Math.PI/4);
- ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=8;ctx.shadowOffsetY=6;
- ctx.fillStyle='#ffc933';ctx.fillRect(22,-9,44,18);
- ctx.shadowColor='transparent';
- ctx.fillStyle='#f0a500';ctx.fillRect(22,-9,44,5);
- ctx.fillStyle='#ffe58a';ctx.fillRect(22,2,44,4);
+ ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=8;ctx.shadowOffsetY=6;ctx.fillStyle='#ffc933';ctx.fillRect(22,-9,44,18);ctx.shadowColor='transparent';
+ ctx.fillStyle='#f0a500';ctx.fillRect(22,-9,44,5);ctx.fillStyle='#ffe58a';ctx.fillRect(22,2,44,4);
  ctx.fillStyle='#f3d3a0';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(24,-9);ctx.lineTo(24,9);ctx.closePath();ctx.fill();
  ctx.fillStyle='#333';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(8,-3.3);ctx.lineTo(8,3.3);ctx.closePath();ctx.fill();
- ctx.fillStyle='#b8b8b8';ctx.fillRect(66,-9,8,18);
- ctx.fillStyle='#f08aa0';ctx.beginPath();ctx.roundRect?ctx.roundRect(74,-9,13,18,5):ctx.rect(74,-9,13,18);ctx.fill();
- ctx.restore()}
-
+ ctx.fillStyle='#b8b8b8';ctx.fillRect(66,-9,8,18);ctx.fillStyle='#f08aa0';ctx.fillRect(74,-9,13,18);ctx.restore()}
 function draw(ts){
+ requestAnimationFrame(draw);
+ if(cv.classList.contains('hide'))return;
  ctx.clearRect(0,0,400,400);ctx.lineCap='round';ctx.lineJoin='round';
- // 3D groove for the letter
  ctx.shadowColor='rgba(0,0,0,.3)';ctx.shadowBlur=10;ctx.shadowOffsetY=5;
  strokes.forEach(s=>line(s,s.total,54,'#c5cfdc'));
  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
  strokes.forEach(s=>line(s,s.total,46,'#f5f8fc'));
- // finished lines (glossy green)
  strokes.forEach((s,i)=>{if(i<cur){line(s,s.total,24,'#17874a',null,0,3);line(s,s.total,22,'#2fbf70');line(s,s.total,6,'#a6f5c6',null,-3,-4)}});
  if(cur<strokes.length){
   const s=strokes[cur];
@@ -75,19 +106,14 @@ function draw(ts){
   const st=at(s,prog);ctx.setLineDash([]);
   if(!drawing){
    const r=16+4*Math.sin(ts/200);
-   ctx.shadowColor='#4d9de0';ctx.shadowBlur=18;
-   ctx.beginPath();ctx.arc(st[0],st[1],r,0,7);ctx.fillStyle='#4d9de0';ctx.fill();
+   ctx.shadowColor='#4d9de0';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(st[0],st[1],r,0,7);ctx.fillStyle='#4d9de0';ctx.fill();
    ctx.shadowBlur=0;ctx.shadowColor='transparent';
    ctx.fillStyle='#fff';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText(cur+1,st[0],st[1]+6);
-  }else{
-   if(Math.random()<.4)burst(st[0],st[1],1);
-   pencil(st[0],st[1]);
-  }
+  }else{if(Math.random()<.4)burst(st[0],st[1],1);pencil(st[0],st[1])}
  }
  parts=parts.filter(p=>p.life>0);
  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life-=.02;ctx.globalAlpha=Math.max(0,Math.min(1,p.life));ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,p.s/2,0,7);ctx.fill()});
- ctx.globalAlpha=1;
- requestAnimationFrame(draw)
+ ctx.globalAlpha=1
 }
 function pt(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*400/r.height]}
 cv.onpointerdown=e=>{
@@ -98,20 +124,24 @@ cv.onpointerdown=e=>{
 };
 cv.onpointermove=e=>{
  if(!drawing)return;
- const s=strokes[cur],n=nearest(s,pt(e));
+ const s=strokes[cur],n=nearest(s,pt(e)),was=off;
  off=n.d>38;
- if(off){msg.textContent='Stay on the path 🙂';return}
+ if(off){msg.textContent='Stay on the path 🙂';if(!was)bad();return}
  msg.textContent='';
- if(n.t>prog&&n.t<prog+120)prog=n.t;
+ if(n.t>prog&&n.t<prog+120){prog=n.t;scratch()}
  if(prog>=s.total*0.93){
   const end=s.pts[s.pts.length-1];burst(end[0],end[1],28);
   cur++;prog=0;drawing=false;off=false;
-  const n2=Math.floor(cur*3/strokes.length);
-  stars.forEach((x,i)=>x.classList.toggle('on',i<n2));
+  setStars(Math.floor(cur*3/strokes.length));good();
   if(navigator.vibrate)navigator.vibrate(40);
-  if(cur>=strokes.length){msg.textContent='Well done! 🎉';confetti()}else msg.textContent='Great! Now the next line ➡️';
+  if(cur>=strokes.length){
+   msg.textContent='Well done! 🎉';confetti();
+   setTimeout(()=>play('audio/adrian/names/adrian_'+L+'_name.mp3'),700);
+   setTimeout(()=>play('audio/adrian/sounds/adrian_'+L+'_sound.mp3'),3200);
+  }else msg.textContent='Great! Now the next line ➡️';
  }
 };
 cv.onpointerup=cv.onpointercancel=()=>{if(drawing){drawing=false;off=false;msg.textContent='Continue from the glowing dot 👆'}};
-reset();requestAnimationFrame(draw);
+strokes=LETTERS[L].map(build);cur=0;prog=0;
+startFind();requestAnimationFrame(draw);
 </script></body></html>
