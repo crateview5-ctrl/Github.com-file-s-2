@@ -15,7 +15,7 @@ const Writing = (() => {
   };
 
   // Tracing clips (5), uploaded to audio/adrian/tracing/ on 2026-10-21.
-  const TRACE = { big: "14_08_13", small: "14_08_49", oops: "14_09_22", found: "14_10_06", notebook: "14_13_06" };
+  const TRACE = { big: "14_08_13", small: "14_08_49", found: "14_09_22", oops: "14_10_06", notebook: "14_13_06" };
   const traceFile = k => "audio/adrian/tracing/" + encodeURI("ElevenLabs_2026-10-21T" + TRACE[k] + FIND_SUF);
 
   if (!document.getElementById("w-css")) {
