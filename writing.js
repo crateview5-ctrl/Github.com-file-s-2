@@ -4,6 +4,16 @@ const Writing = (() => {
   // Plays audio/adrian/prompts/adrian_<f>.mp3, or the phone voice if that clip is missing.
   const say = (f, t, done) => Snd.play("audio/adrian/prompts/adrian_" + f + ".mp3", t, done);
 
+  // Find-step clips (52): Capital A, small a, Capital B, small b ... in upload-time order.
+  const FIND_SUF = "_Chris - Warm, Resonant, Thoughtful_pvc_sp100_s50_sb75_v3.mp3";
+  const FIND_STAMPS = ["17_41","18_31","19_36","20_17","20_43","21_19","22_15","22_59","23_36","24_13","24_49","25_15","25_43","26_13","26_43","27_33","28_06","28_47","31_43","32_22","33_02","33_40","34_23","34_49","35_25","35_51","36_48","37_45","38_16","38_55","39_19","39_54","40_29","40_55","41_27","41_55","42_52","43_28","44_03","44_35","45_07","45_37","46_25","46_57","47_50","48_18","48_58","49_58","50_25","51_00","51_33","52_58"];
+  const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const word = size => size === "big" ? "capital" : "small";
+  const findFile = q => {
+    const k = ABC.indexOf(q.x.U) * 2 + (q.size === "small" ? 1 : 0);
+    return "audio/adrian/writing/" + encodeURI("ElevenLabs_2026-10-20T19_" + FIND_STAMPS[k] + FIND_SUF);
+  };
+
   if (!document.getElementById("w-css")) {
     const st = document.createElement("style");
     st.id = "w-css";
@@ -78,7 +88,7 @@ const Writing = (() => {
   }
 
   // ---------- Step 1: find (the letter is never written in the question) ----------
-  function again() { const q = items[qi]; say("find_" + q.size + q.x.U, "Find the " + q.size + " letter " + q.x.nameSay); }
+  function again() { const q = items[qi]; Snd.play(findFile(q), "Find the " + word(q.size) + " letter " + q.x.nameSay); }
   function startFind() {
     setStars(0); setProg();
     $("#w-ask").innerHTML = `Listen and tap the right letter 👂<button id="w-again">🔊</button>`;
@@ -108,8 +118,8 @@ const Writing = (() => {
     li = i; const ch = items[i];
     $("#w-find").classList.add("w-hide"); cv.classList.remove("w-hide");
     strokes = GLYPHS[ch.c].map(build); cur = 0; prog = 0; drawing = false; off = false; setStars(0); setProg();
-    msg("Trace the " + ch.size + " letter " + ch.c + ". Start at the glowing dot 👆");
-    say("write_" + ch.size + ch.x.U, "Now let us write the " + ch.size + " letter " + ch.x.nameSay);
+    msg("Trace the " + word(ch.size) + " letter " + ch.c + ". Start at the glowing dot 👆");
+    say("write_" + ch.size + ch.x.U, "Now let us write the " + word(ch.size) + " letter " + ch.x.nameSay);
   }
   function at(s, d) { for (let i = 1; i < s.pts.length; i++) { if (d <= s.len[i] || i == s.pts.length - 1) { const k = Math.max(0, Math.min(1, (d - s.len[i - 1]) / (s.len[i] - s.len[i - 1]))); const a = s.pts[i - 1], b = s.pts[i]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; } } }
   function nearest(s, p) { let best = { d: 1e9, t: 0 }; for (let i = 1; i < s.pts.length; i++) { const a = s.pts[i - 1], b = s.pts[i], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy; let k = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2; k = Math.max(0, Math.min(1, k)); const d = Math.hypot(p[0] - (a[0] + dx * k), p[1] - (a[1] + dy * k)), t = s.len[i - 1] + k * Math.sqrt(l2), dd = (t < prog - 40 || t > prog + 150) ? d + 1000 : d; if (dd < best.d) best = { d: dd, t }; } return best; }
