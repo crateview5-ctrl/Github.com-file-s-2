@@ -18,6 +18,9 @@ const WORD_TIME = {
 // While this is empty, the phone's built-in voice asks the question instead.
 const QUIZ_PICTURE_AUDIO = "";
 
+// Makes a file path safe for the browser exactly once, even if it was already encoded.
+const safeSrc = s => { let p = String(s); try { p = decodeURI(p); } catch (e) {} return encodeURI(p); };
+
 const Snd = {
   tok: 0,
   cur: null,
@@ -41,7 +44,7 @@ const Snd = {
     const viaVoice = () => { if (used) return; used = true; Snd.speak(fallback, 0.7, finish); };
     if (!src) return viaVoice();
     try {
-      const a = new Audio(encodeURI(src));
+      const a = new Audio(safeSrc(src));
       Snd.cur = a;
       a.onended = finish;
       a.onerror = viaVoice;
