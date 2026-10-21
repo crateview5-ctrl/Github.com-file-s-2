@@ -14,6 +14,10 @@ const Writing = (() => {
     return "audio/adrian/writing/" + encodeURI("ElevenLabs_2026-10-20T19_" + FIND_STAMPS[k] + FIND_SUF);
   };
 
+  // Tracing clips (5), uploaded to audio/adrian/tracing/ on 2026-10-21.
+  const TRACE = { big: "14_08_13", small: "14_08_49", oops: "14_09_22", found: "14_10_06", notebook: "14_13_06" };
+  const traceFile = k => "audio/adrian/tracing/" + encodeURI("ElevenLabs_2026-10-21T14_" + TRACE[k] + FIND_SUF);
+
   if (!document.getElementById("w-css")) {
     const st = document.createElement("style");
     st.id = "w-css";
@@ -104,10 +108,13 @@ const Writing = (() => {
     if (b.classList.contains("ok") || qi >= items.length) return;
     if (it === items[qi]) {
       b.classList.add("ok"); good(); qi++; setStars(Math.floor(qi * 3 / items.length)); setProg();
-      if (qi >= items.length) { msg("You found them all! Now let's write ✏️"); say("found_all", "You found them all! Now let us write."); setTimeout(() => startTrace(0), 3000); }
+      if (qi >= items.length) {
+        msg("You found them all! Now let's write ✏️");
+        setTimeout(() => Snd.play(traceFile("found"), "You found them all! Now let us write.", () => setTimeout(() => startTrace(0), 400)), 600);
+      }
       else setTimeout(again, 800);
     } else {
-      b.classList.add("bad"); bad(); msg("Oops, try again 🙂"); say("try_again", "Oops, try again!");
+      b.classList.add("bad"); bad(); msg("Oops, try again 🙂"); Snd.play(traceFile("oops"), "Oops, try again!");
       setTimeout(() => b.classList.remove("bad"), 400);
     }
   }
@@ -119,7 +126,9 @@ const Writing = (() => {
     $("#w-find").classList.add("w-hide"); cv.classList.remove("w-hide");
     strokes = GLYPHS[ch.c].map(build); cur = 0; prog = 0; drawing = false; off = false; setStars(0); setProg();
     msg("Trace the " + word(ch.size) + " letter " + ch.c + ". Start at the glowing dot 👆");
-    say("write_" + ch.size + ch.x.U, "Now let us write the " + word(ch.size) + " letter " + ch.x.nameSay);
+    // "Now let us write the capital/small letter ..." then the letter's own name clip.
+    Snd.play(traceFile(ch.size), "Now let us write the " + word(ch.size) + " letter", () =>
+      Snd.play("audio/adrian/names/adrian_" + ch.x.U + "_name.mp3", ch.x.nameSay));
   }
   function at(s, d) { for (let i = 1; i < s.pts.length; i++) { if (d <= s.len[i] || i == s.pts.length - 1) { const k = Math.max(0, Math.min(1, (d - s.len[i - 1]) / (s.len[i] - s.len[i - 1]))); const a = s.pts[i - 1], b = s.pts[i]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; } } }
   function nearest(s, p) { let best = { d: 1e9, t: 0 }; for (let i = 1; i < s.pts.length; i++) { const a = s.pts[i - 1], b = s.pts[i], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy; let k = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2; k = Math.max(0, Math.min(1, k)); const d = Math.hypot(p[0] - (a[0] + dx * k), p[1] - (a[1] + dy * k)), t = s.len[i - 1] + k * Math.sqrt(l2), dd = (t < prog - 40 || t > prog + 150) ? d + 1000 : d; if (dd < best.d) best = { d: dd, t }; } return best; }
@@ -203,11 +212,11 @@ const Writing = (() => {
     <div class="w-scene"><div class="w-cover"><div class="w-rings"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="w-paper"><div class="w-panel">
         <div class="e">📒✏️</div>
-        <p><b>Now practice in your real notebook!</b></p>
-        <p>Write <b>${letters}</b> three times on paper. Take your time.</p>
+        <p><b>You are doing wonderfully!</b></p>
+        <p>Grab your notebook and pencil, and write <b>${letters}</b> three times. Show a grown-up when you are done!</p>
         <button class="w-btn" id="w-did">I practiced! ✅</button>
       </div></div></div></div>`;
-    say("practice_notebook", "Now try these letters in your real notebook!");
+    Snd.play(traceFile("notebook"), "You are doing wonderfully! Grab your notebook and pencil, and write these letters three times. Show a grown-up when you are done!");
     $("#w-did").onclick = finish;
   }
   function finish() {
