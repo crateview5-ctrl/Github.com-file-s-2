@@ -18,8 +18,23 @@ const WORD_TIME = {
 // While this is empty, the phone's built-in voice asks the question instead.
 const QUIZ_PICTURE_AUDIO = "";
 
-// Makes a file path safe for the browser exactly once, even if it was already encoded.
+// Two safe ways to write a file path, so a clip name with spaces or commas still loads.
 const safeSrc = s => { let p = String(s); try { p = decodeURI(p); } catch (e) {} return encodeURI(p); };
+const altSrc = s => { let p = String(s); try { p = decodeURI(p); } catch (e) {} return p.split("/").map(encodeURIComponent).join("/"); };
+
+// Temporary red note at the bottom of the screen when a clip cannot play (to find problems).
+function audioNote(t) {
+  try {
+    let n = document.getElementById("audio-note");
+    if (!n) {
+      n = document.createElement("div"); n.id = "audio-note";
+      n.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#b3261e;color:#fff;font:12px/1.3 sans-serif;padding:8px 10px;border-radius:8px;word-break:break-all;box-shadow:0 2px 8px rgba(0,0,0,.4)";
+      document.body.appendChild(n);
+    }
+    n.textContent = "Audio problem: " + t;
+    clearTimeout(n._t); n._t = setTimeout(() => n.remove(), 12000);
+  } catch (e) {}
+}
 
 const Snd = {
   tok: 0,
@@ -43,13 +58,24 @@ const Snd = {
     let used = false;
     const viaVoice = () => { if (used) return; used = true; Snd.speak(fallback, 0.7, finish); };
     if (!src) return viaVoice();
-    try {
-      const a = new Audio(safeSrc(src));
-      Snd.cur = a;
-      a.onended = finish;
-      a.onerror = viaVoice;
-      a.play().catch(viaVoice);
-    } catch (e) { viaVoice(); }
+    const tries = [safeSrc(src), altSrc(src)];
+    const attempt = n => {
+      let failed = false;
+      const fail = why => {
+        if (failed || my !== Snd.tok) return;
+        failed = true;
+        if (n + 1 < tries.length && tries[n + 1] !== tries[n]) attempt(n + 1);
+        else { audioNote(why + " | " + tries[n]); viaVoice(); }
+      };
+      try {
+        const a = new Audio(tries[n]);
+        Snd.cur = a;
+        a.onended = finish;
+        a.onerror = () => fail("load error");
+        a.play().catch(e => fail((e && e.name) || "play error"));
+      } catch (e) { fail("exception"); }
+    };
+    attempt(0);
   },
   file(f, fallback) { Snd.play(f, fallback); },
   name(x) { Snd.play("audio/adrian/names/adrian_" + x.U + "_name.mp3", x.nameSay); },
