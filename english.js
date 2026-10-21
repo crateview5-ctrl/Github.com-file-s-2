@@ -113,7 +113,7 @@ const English = (() => {
     const ups = shuffle(L), lows = shuffle(L);
     view().innerHTML = `
     <div class="card">
-      <p class="q">Match big and small letters</p>
+      <p class="q">Match capital and small letters</p>
       <div class="cols">
         <div>${ups.map(x => `<button class="opt m" data-side="u" data-id="${x.U}">${lc(x, true)}</button>`).join("")}</div>
         <div>${lows.map(x => `<button class="opt m" data-side="l" data-id="${x.U}">${lc(x, false)}</button>`).join("")}</div>
