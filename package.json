@@ -1,0 +1,10 @@
+{
+  "name": "brightsteps-apk",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/core": "6.2.1",
+    "@capacitor/cli": "6.2.1",
+    "@capacitor/android": "6.2.1"
+  }
+}
