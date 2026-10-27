@@ -19,6 +19,8 @@ jobs:
       - run: npx cap add android
       - name: Make icon and splash from logo
         run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
           mkdir -p assets
           convert app_logo_8k.png -resize 1024x1024 -background none -gravity center -extent 1024x1024 assets/icon-only.png
           convert app_logo_8k.png -resize 680x680 -background none -gravity center -extent 1024x1024 assets/icon-foreground.png
