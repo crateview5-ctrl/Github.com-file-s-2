@@ -2,7 +2,7 @@ name: Build APK
 on: workflow_dispatch
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,6 +17,15 @@ jobs:
           mkdir -p www
           echo '<!doctype html><title>BrightSteps</title>' > www/index.html
       - run: npx cap add android
+      - name: Make icon and splash from logo
+        run: |
+          mkdir -p assets
+          convert app_logo_8k.png -resize 1024x1024 -background none -gravity center -extent 1024x1024 assets/icon-only.png
+          convert app_logo_8k.png -resize 680x680 -background none -gravity center -extent 1024x1024 assets/icon-foreground.png
+          convert -size 1024x1024 xc:white assets/icon-background.png
+          convert app_logo_8k.png -resize 900x900 -background white -gravity center -extent 2732x2732 assets/splash.png
+          cp assets/splash.png assets/splash-dark.png
+          npx --yes @capacitor/assets@3.0.5 generate --android
       - run: npx cap sync android
       - working-directory: android
         run: |
