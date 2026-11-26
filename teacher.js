@@ -44,17 +44,18 @@ const Teacher = (() => {
     const s = document.createElement("style");
     s.id = "teacher-css";
     s.textContent = `
-    .tgrid{display:flex;gap:12px;margin-bottom:14px}
-    .tcard{flex:1;position:relative;border:4px solid #cfe3f3;border-radius:24px;background:#fff;padding:10px 8px 12px;text-align:center;box-shadow:0 4px 0 #c9e3f5}
-    .tsel{display:block;width:100%;border:0;background:none;font:inherit;color:var(--ink);padding:0}
-    .tpic{position:relative;width:100%;max-width:170px;aspect-ratio:1/1;margin:0 auto 8px;border-radius:20px;overflow:hidden;background:#cfe3f3;display:flex;align-items:center;justify-content:center;font-size:4rem;font-weight:800;color:#7aa3c4}
+    .tgrid{display:flex;gap:12px;margin-bottom:14px;align-items:stretch}
+    .tcard{flex:1;display:flex;flex-direction:column;position:relative;border:4px solid #cfe3f3;border-radius:24px;background:#fff;padding:16px 8px 12px;text-align:center;box-shadow:0 4px 0 #c9e3f5}
+    .tsel{display:block;width:100%;flex:1;border:0;background:none;font:inherit;color:var(--ink);padding:0}
+    .tpic{position:relative;width:100%;max-width:150px;aspect-ratio:1/1;margin:0 auto 12px;border-radius:50%;overflow:hidden;background:#cfe3f3;border:4px solid #fff;box-shadow:0 0 0 3px #cfe3f3,0 8px 16px rgba(29,43,79,.18);display:flex;align-items:center;justify-content:center;font-size:3.6rem;font-weight:800;color:#7aa3c4}
     .tpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
     .tsel b{display:block;font-size:1.35rem}
     .tsel span{display:block;font-size:.9rem;margin-top:2px;font-weight:700;color:#4a5b78}
     .tsel small{display:block;font-size:.8rem;margin-top:4px;color:#5b6b80}
     .tcard.on{border-color:var(--green);background:#e3f8ec;box-shadow:0 4px 0 #1c8f52}
+    .tcard.on .tpic{box-shadow:0 0 0 3px var(--green),0 8px 16px rgba(29,43,79,.18)}
     .tcard.on::after{content:"\\2713";position:absolute;top:8px;right:8px;width:30px;height:30px;line-height:30px;border-radius:50%;background:var(--green);color:#fff;font-weight:800}
-    .tup{display:block;margin-top:10px;padding:10px 6px;border-radius:14px;background:var(--sun);color:var(--ink);font-weight:700;font-size:.9rem}
+    .tup{display:block;margin-top:12px;padding:10px 6px;border-radius:14px;background:var(--sun);color:var(--ink);font-weight:700;font-size:.9rem}
     .tup input{display:none}
     .tnote{min-height:1.4em;font-weight:700;color:#b05a00;text-align:center;margin:4px 0 0}
     .btn[disabled]{opacity:.45}`;
