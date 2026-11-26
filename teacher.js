@@ -1,12 +1,10 @@
-// Teacher selection: Adrian (male) or Diana (female).
-// The choice is saved on the device. Each teacher can have your own picture, saved on this phone.
-//
-// TEMPORARY FEATURE: the "Upload photo" buttons are only for saving your own character pictures once.
-// When both pictures are saved, ask for the upload buttons to be removed (the pictures stay saved).
+// Teacher selection: Mr. Adrian (male) or Ms. Diana (female).
+// Tap a teacher to choose; the choice is saved on the device and the app goes to the home screen.
+// Teacher pictures saved on this phone earlier (IndexedDB) are shown in the circles.
 const Teacher = (() => {
   const LIST = [
-    { id: "adrian", name: "Adrian", role: "Male teacher", line: "Calm, kind and patient", initial: "A" },
-    { id: "diana", name: "Diana", role: "Female teacher", line: "Warm, gentle and encouraging", initial: "D" }
+    { id: "adrian", name: "Adrian", title: "Mr. Adrian", initial: "A" },
+    { id: "diana", name: "Diana", title: "Ms. Diana", initial: "D" }
   ];
   // Voice folders that exist on GitHub (audio/adrian/ ...). Diana's clips are not uploaded yet,
   // so lessons keep playing Adrian's clips even when Diana is chosen.
@@ -32,12 +30,6 @@ const Teacher = (() => {
     q.onsuccess = () => res(q.result || null);
     q.onerror = () => res(null);
   })).catch(() => null);
-  const picSet = (id, blob) => dbOpen().then(db => new Promise((res, rej) => {
-    const tx = db.transaction("pics", "readwrite");
-    tx.objectStore("pics").put(blob, id);
-    tx.oncomplete = () => res(true);
-    tx.onerror = () => rej(tx.error);
-  }));
 
   function addStyles() {
     if (document.getElementById("teacher-css")) return;
@@ -45,20 +37,13 @@ const Teacher = (() => {
     s.id = "teacher-css";
     s.textContent = `
     .tgrid{display:flex;gap:12px;margin-bottom:14px;align-items:stretch}
-    .tcard{flex:1;display:flex;flex-direction:column;position:relative;border:4px solid #cfe3f3;border-radius:24px;background:#fff;padding:16px 8px 12px;text-align:center;box-shadow:0 4px 0 #c9e3f5}
+    .tcard{flex:1;display:flex;flex-direction:column;position:relative;border:4px solid #cfe3f3;border-radius:24px;background:#fff;padding:18px 8px 16px;text-align:center;box-shadow:0 4px 0 #c9e3f5}
     .tsel{display:block;width:100%;flex:1;border:0;background:none;font:inherit;color:var(--ink);padding:0}
-    .tpic{position:relative;width:100%;max-width:150px;aspect-ratio:1/1;margin:0 auto 12px;border-radius:50%;overflow:hidden;background:#cfe3f3;border:4px solid #fff;box-shadow:0 0 0 3px #cfe3f3,0 8px 16px rgba(29,43,79,.18);display:flex;align-items:center;justify-content:center;font-size:3.6rem;font-weight:800;color:#7aa3c4}
+    .tpic{position:relative;width:100%;max-width:150px;aspect-ratio:1/1;margin:0 auto 14px;border-radius:50%;overflow:hidden;background:#cfe3f3;border:4px solid #fff;box-shadow:0 0 0 3px #cfe3f3,0 8px 16px rgba(29,43,79,.18);display:flex;align-items:center;justify-content:center;font-size:3.6rem;font-weight:800;color:#7aa3c4}
     .tpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
-    .tsel b{display:block;font-size:1.35rem}
-    .tsel span{display:block;font-size:.9rem;margin-top:2px;font-weight:700;color:#4a5b78}
-    .tsel small{display:block;font-size:.8rem;margin-top:4px;color:#5b6b80}
+    .tsel b{display:block;font-size:1.4rem}
     .tcard.on{border-color:var(--green);background:#e3f8ec;box-shadow:0 4px 0 #1c8f52}
-    .tcard.on .tpic{box-shadow:0 0 0 3px var(--green),0 8px 16px rgba(29,43,79,.18)}
-    .tcard.on::after{content:"\\2713";position:absolute;top:8px;right:8px;width:30px;height:30px;line-height:30px;border-radius:50%;background:var(--green);color:#fff;font-weight:800}
-    .tup{display:block;margin-top:12px;padding:10px 6px;border-radius:14px;background:var(--sun);color:var(--ink);font-weight:700;font-size:.9rem}
-    .tup input{display:none}
-    .tnote{min-height:1.4em;font-weight:700;color:#b05a00;text-align:center;margin:4px 0 0}
-    .btn[disabled]{opacity:.45}`;
+    .tcard.on .tpic{box-shadow:0 0 0 3px var(--green),0 8px 16px rgba(29,43,79,.18)}`;
     document.head.appendChild(s);
   }
 
@@ -72,38 +57,21 @@ const Teacher = (() => {
       const blob = await picGet(t.id);
       if (blob) urls[t.id] = URL.createObjectURL(blob);
     }
-    let msg = "";
-    const draw = () => {
-      const pick = get();
-      const note = msg || (pick && !VOICE_READY[pick] ? info(pick).name + "'s voice is coming soon. For now the lessons use Adrian's voice." : "");
-      view.innerHTML = `
-      <div class="card hello"><p class="q">Choose your teacher</p></div>
-      <div class="tgrid">` + LIST.map(t => `
-        <div class="tcard${pick === t.id ? " on" : ""}">
-          <button class="tsel" data-id="${t.id}" aria-pressed="${pick === t.id}">
-            <div class="tpic">${t.initial}${urls[t.id] ? `<img src="${urls[t.id]}" alt="${t.name}">` : ""}</div>
-            <b>${t.name}</b><span>${t.role}</span><small>${t.line}</small>
-          </button>
-          <label class="tup">📷 Upload photo<input type="file" accept="image/*" data-up="${t.id}"></label>
-        </div>`).join("") + `
-      </div>
-      <p class="tnote">${note}</p>
-      <button class="btn go" id="tgo"${pick ? "" : " disabled"}>${pick ? "Continue" : "Tap a teacher"}</button>`;
-      view.querySelectorAll(".tsel").forEach(b => b.onclick = () => { msg = ""; store.set("teacher", b.dataset.id); draw(); });
-      view.querySelectorAll("[data-up]").forEach(inp => inp.onchange = () => {
-        const f = inp.files && inp.files[0];
-        if (!f) return;
-        const id = inp.dataset.up;
-        picSet(id, f).then(() => {
-          if (urls[id]) URL.revokeObjectURL(urls[id]);
-          urls[id] = URL.createObjectURL(f);
-          msg = info(id).name + "'s photo is saved on this phone.";
-          draw();
-        }).catch(() => { msg = "Could not save the photo on this phone."; draw(); });
-      });
-      view.querySelector("#tgo").onclick = () => { if (get()) opts.done(); };
-    };
-    draw();
+    view.innerHTML = `
+    <div class="card hello"><p class="q">Choose your teacher</p></div>
+    <div class="tgrid">` + LIST.map(t => `
+      <div class="tcard">
+        <button class="tsel" data-id="${t.id}" aria-label="Choose ${t.title}">
+          <div class="tpic">${t.initial}${urls[t.id] ? `<img src="${urls[t.id]}" alt="">` : ""}</div>
+          <b>${t.title}</b>
+        </button>
+      </div>`).join("") + `
+    </div>`;
+    view.querySelectorAll(".tsel").forEach(b => b.onclick = () => {
+      store.set("teacher", b.dataset.id);
+      view.querySelectorAll(".tcard").forEach(c => c.classList.toggle("on", c.contains(b)));
+      setTimeout(opts.done, 350);
+    });
   }
 
   return { show, get, current, info, audioDir };
