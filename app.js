@@ -36,6 +36,10 @@ function audioNote(t) {
   } catch (e) {}
 }
 
+// Which teacher's folder the names / sounds / quiz clips come from (see teacher.js).
+// Until Diana's clips are uploaded this stays "adrian" even if Diana is chosen.
+const tdir = () => (typeof Teacher !== "undefined" ? Teacher.audioDir() : "adrian");
+
 const Snd = {
   tok: 0,
   cur: null,
@@ -78,9 +82,9 @@ const Snd = {
     attempt(0);
   },
   file(f, fallback) { Snd.play(f, fallback); },
-  name(x) { Snd.play("audio/adrian/names/adrian_" + x.U + "_name.mp3", x.nameSay); },
-  sound(x) { Snd.play("audio/adrian/sounds/adrian_" + x.U + "_sound.mp3", x.soundSay); },
-  quiz(x) { Snd.play("audio/adrian/quiz/adrian_" + x.U + "_quiz.mp3", "Which letter makes this sound? " + x.soundSay); },
+  name(x) { const d = tdir(); Snd.play("audio/" + d + "/names/" + d + "_" + x.U + "_name.mp3", x.nameSay); },
+  sound(x) { const d = tdir(); Snd.play("audio/" + d + "/sounds/" + d + "_" + x.U + "_sound.mp3", x.soundSay); },
+  quiz(x) { const d = tdir(); Snd.play("audio/" + d + "/quiz/" + d + "_" + x.U + "_quiz.mp3", "Which letter makes this sound? " + x.soundSay); },
   word(w, done) {
     const key = String(w).toLowerCase().replace(/[^a-z]/g, "");
     const t = WORD_TIME[key];
@@ -103,9 +107,10 @@ const App = (() => {
 
   // Screens: home -> english (two cards) -> sounds (levels) -> lesson
   //                                      -> writing (levels) -> write
+  //                 -> teacher (choose Adrian or Diana)
   // go("path") means "back to the list I came from", so lesson/writing files
   // that still say go("path") land on the right list.
-  const BACK = { english: "home", sounds: "english", writing: "english", lesson: "sounds", write: "writing" };
+  const BACK = { english: "home", teacher: "home", sounds: "english", writing: "english", lesson: "sounds", write: "writing" };
 
   function go(name) {
     if (name === "path") {
@@ -117,6 +122,7 @@ const App = (() => {
     $("#progress").hidden = !(name === "lesson" || name === "write");
     if (name === "home") home();
     else if (name === "english") english();
+    else if (name === "teacher") Teacher.show();
     else if (name === "sounds") sounds();
     else if (name === "writing") writing();
     else if (name === "lesson") English.start(current);
@@ -129,12 +135,15 @@ const App = (() => {
 
   function home() {
     setTitle("BrightSteps");
+    const tc = Teacher.info(Teacher.current());
     $("#view").innerHTML = `
     <div class="card hello"><p class="q">What shall we learn today?</p></div>
     <button class="big en" id="en"><b>📖</b><span>English &amp; Reading</span></button>
     <button class="big soon" disabled><b>🔢</b><span>Maths<small>Coming soon</small></span></button>
-    <button class="big soon" disabled><b>🤖</b><span>AI Learning Buddy<small>Coming soon</small></span></button>`;
+    <button class="big soon" disabled><b>🤖</b><span>AI Learning Buddy<small>Coming soon</small></span></button>
+    <button class="big en" id="tc"><img class="tthumb" src="${Teacher.thumb()}" alt=""><span>Your teacher: ${tc.name}<small>Tap to change</small></span></button>`;
     $("#en").onclick = () => go("english");
+    $("#tc").onclick = () => go("teacher");
   }
 
   // Window 2: only the two sections.
@@ -204,7 +213,8 @@ const App = (() => {
   function setBest(id, n) { store.set("best_" + id, n); }
 
   $("#back").onclick = () => go(BACK[screen] || "home");
-  showStars(); go("home");
+  // First time on this device: choose a teacher first. After that, straight to home.
+  showStars(); go(Teacher.get() ? "home" : "teacher");
 
   if ("serviceWorker" in navigator) {
     const hadController = !!navigator.serviceWorker.controller;
