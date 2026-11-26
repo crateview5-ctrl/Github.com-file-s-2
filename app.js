@@ -220,20 +220,32 @@ const App = (() => {
     $("#wr").onclick = () => go("writing");
   }
 
-  // Window 3a: Sounds levels on a winding rainbow path.
+  // Window 3a: Sounds levels on a winding rainbow path, 3 circles per row (the path snakes
+  // left to right, then right to left), so all 9 levels fit on one screen.
   // A level opens when the level before it is finished. Finished levels can be replayed.
   function sounds() {
     setTitle("Alphabet Sounds");
-    const n = LESSONS.length, ROW = 150, TOP = 30, H = TOP + ROW * n;
-    const XS = [50, 24, 50, 76];
+    const n = LESSONS.length, PER = 3, ROW = 132, TOP = 34, rows = Math.ceil(n / PER), H = TOP + ROW * rows;
+    const COLX = [17, 50, 83];
     const doneArr = LESSONS.map(l => isDone(l.id));
     const doneCount = doneArr.filter(Boolean).length;
     const cur = doneArr.indexOf(false);
-    const pos = i => ({ x: XS[i % 4], y: TOP + ROW * i + 29 });
+    const pos = i => {
+      const r = Math.floor(i / PER); let c = i % PER;
+      if (r % 2) c = PER - 1 - c;
+      return { x: COLX[c], y: TOP + ROW * r + 29, r };
+    };
     let base = "", col = "";
     for (let i = 0; i < n - 1; i++) {
-      const a = pos(i), b = pos(i + 1), m = (a.y + b.y) / 2;
-      const d = `M${a.x} ${a.y} C${a.x} ${m} ${b.x} ${m} ${b.x} ${b.y}`;
+      const a = pos(i), b = pos(i + 1);
+      let d;
+      if (a.r === b.r) {
+        const m = (a.x + b.x) / 2, w = (i % 2 ? -1 : 1) * 12;
+        d = `M${a.x} ${a.y} C${m} ${a.y + w} ${m} ${b.y - w} ${b.x} ${b.y}`;
+      } else {
+        const o = a.x > 50 ? 14 : -14;
+        d = `M${a.x} ${a.y} C${a.x + o} ${a.y + 6} ${b.x + o} ${b.y - 6} ${b.x} ${b.y}`;
+      }
       base += `<path d="${d}" fill="none" stroke="#dce6f2" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
       if (doneArr[i]) col += `<path d="${d}" fill="none" stroke="${RAINBOW[i % 8]}" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
     }
@@ -245,7 +257,7 @@ const App = (() => {
       const bg = state === "lock" ? "" : `style="background:${RAINBOW[i % 8]}"`;
       const badge = state === "done" ? "✓" : state === "lock" ? "🔒" : "";
       const label = "Level " + (i + 1) + ", letters " + letters + ", " + (state === "done" ? "finished" : state === "cur" ? "your level" : "locked");
-      nodes += `<button class="node ${state}" data-k="${i}" ${state === "lock" ? "disabled" : ""} style="left:${p.x}%;top:${TOP + ROW * i}px" aria-label="${label}">
+      nodes += `<button class="node ${state}" data-k="${i}" ${state === "lock" ? "disabled" : ""} style="left:${p.x}%;top:${TOP + ROW * p.r}px" aria-label="${label}">
         ${state === "cur" ? `<span class="here">You are here</span>` : ""}
         ${i === 0 && state === "done" ? `<span class="crown" aria-hidden="true">👑</span>` : ""}
         <span class="circ" ${bg}>${letters}${badge ? `<span class="badge">${badge}</span>` : ""}</span>
@@ -265,10 +277,6 @@ const App = (() => {
     <p class="lsum">${all ? "All " + n + " levels done" : "Level " + (cur + 1) + " of " + n + " · " + doneCount + (doneCount === 1 ? " level" : " levels") + " done"}</p>
     <div class="pbar ${all ? "rb" : ""}"><div style="width:${Math.round(100 * doneCount / n)}%"></div></div>`;
     document.querySelectorAll(".node:not(:disabled)").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
-    setTimeout(() => {
-      const c = document.querySelector(".node.cur");
-      if (c && screen === "sounds") c.scrollIntoView({ block: "center" });
-    }, 60);
   }
 
   // Window 3b: Writing levels. A level opens after the matching Sounds level
