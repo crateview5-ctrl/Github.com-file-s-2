@@ -40,6 +40,9 @@ function audioNote(t) {
 // Until Diana's clips are uploaded this stays "adrian" even if Diana is chosen.
 const tdir = () => (typeof Teacher !== "undefined" ? Teacher.audioDir() : "adrian");
 
+// Level colours, in order. Each finished level takes the next colour; the ninth is green again.
+const RAINBOW = ["#22a464", "#2783cc", "#4f55c4", "#8b46c7", "#c44fae", "#e5484d", "#f2760a", "#d99400"];
+
 const Snd = {
   tok: 0,
   cur: null,
@@ -140,18 +143,66 @@ const App = (() => {
     $("#view").innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center">
       <img src="icon-512.png" alt="BrightSteps logo" style="width:200px;height:200px;border-radius:44px;box-shadow:0 6px 0 #c9e3f5">
-      <h2 style="margin:18px 0 0">BrightSteps Learning</h2>
+      <h2 style="margin:18px 0 0;font-family:var(--disp)">BrightSteps Learning</h2>
     </div>`;
     setTimeout(() => { if (screen === "splash") go("teacher"); }, 1800);
   }
 
+  // Home: the library bookshelf. Only the English book opens something for now.
   function home() {
     setTitle("BrightSteps");
+    const done = LESSONS.filter(l => isDone(l.id)).length;
+    const filled = Math.min(3, Math.floor(3 * done / LESSONS.length));
+    const starRow = [0, 1, 2].map(i => `<span class="${i < filled ? "" : "off"}">★</span>`).join("");
+    const heights = [30, 22, 40, 28, 36, 24, 34, 26];
+    const spines = RAINBOW.map((c, i) => `<i style="background:${c};height:${heights[i]}px;animation-delay:${(0.15 + i * 0.08).toFixed(2)}s"></i>`).join("");
     $("#view").innerHTML = `
-    <div class="card hello"><p class="q">What shall we learn today?</p></div>
-    <button class="big en" id="en"><b>📖</b><span>English &amp; Reading</span></button>
-    <button class="big soon" disabled><b>🔢</b><span>Maths<small>Coming soon</small></span></button>
-    <button class="big soon" disabled><b>🤖</b><span>AI Learning Buddy<small>Coming soon</small></span></button>`;
+    <div class="hero">
+      <div class="kick">The BrightSteps library</div>
+      <h2>Pick a book, <span>start learning</span></h2>
+      <div class="spines" aria-hidden="true">${spines}</div>
+    </div>
+    <div class="shelf">
+      <div class="shelf-h">Start learning <small>Shelf 1</small></div>
+      <div class="books">
+        <button class="book eng" id="en" aria-label="English and Reading. Start here">
+          <span class="tag">Start here</span>
+          <span class="bk">Aa</span>
+          <span class="nm">English &amp; Reading</span>
+          <span class="sub">Sounds and writing</span>
+          <span class="rule"></span>
+          <span class="bstars">${starRow}<span class="go" aria-hidden="true">›</span></span>
+        </button>
+        <div class="book mth">
+          <span class="bk">123</span>
+          <span class="nm">Maths</span>
+          <span class="sub">Counting</span>
+          <span class="rule"></span>
+          <span class="pill">Coming soon</span>
+        </div>
+      </div>
+      <div class="board"></div>
+    </div>
+    <div class="shelf">
+      <div class="shelf-h">More to explore <small>Shelf 2</small></div>
+      <div class="books">
+        <div class="book ai">
+          <span class="ico" aria-hidden="true">🤖</span>
+          <span class="nm">AI Learning Buddy</span>
+          <span class="sub">Talk &amp; learn</span>
+          <span class="rule"></span>
+          <span class="pill">Coming soon</span>
+        </div>
+        <div class="book rh">
+          <span class="ico" aria-hidden="true">🎵</span>
+          <span class="nm">Rhymes &amp; Stories</span>
+          <span class="sub">Songs &amp; stories</span>
+          <span class="rule"></span>
+          <span class="pill">Coming soon</span>
+        </div>
+      </div>
+      <div class="board"></div>
+    </div>`;
     $("#en").onclick = () => go("english");
   }
 
@@ -169,18 +220,55 @@ const App = (() => {
     $("#wr").onclick = () => go("writing");
   }
 
-  // Window 3a: Sounds levels. A level opens when the level before it is finished.
+  // Window 3a: Sounds levels on a winding rainbow path.
+  // A level opens when the level before it is finished. Finished levels can be replayed.
   function sounds() {
     setTitle("Alphabet Sounds");
-    let html = `<div class="card hello"><p class="q">Choose a level</p></div>`;
-    LESSONS.forEach((l, k) => {
-      const unlocked = k === 0 || isDone(LESSONS[k - 1].id);
-      html += unlocked
-        ? `<button class="big en lv" data-k="${k}"><b>${isDone(l.id) ? "✅" : "🔤"}</b><span>Level ${k + 1}: ${l.title}<small>Names, sounds and games</small></span></button>`
-        : `<button class="big soon" disabled><b>🔒</b><span>Level ${k + 1}: ${l.title}<small>Finish the level before this one</small></span></button>`;
+    const n = LESSONS.length, ROW = 150, TOP = 30, H = TOP + ROW * n;
+    const XS = [50, 24, 50, 76];
+    const doneArr = LESSONS.map(l => isDone(l.id));
+    const doneCount = doneArr.filter(Boolean).length;
+    const cur = doneArr.indexOf(false);
+    const pos = i => ({ x: XS[i % 4], y: TOP + ROW * i + 29 });
+    let base = "", col = "";
+    for (let i = 0; i < n - 1; i++) {
+      const a = pos(i), b = pos(i + 1), m = (a.y + b.y) / 2;
+      const d = `M${a.x} ${a.y} C${a.x} ${m} ${b.x} ${m} ${b.x} ${b.y}`;
+      base += `<path d="${d}" fill="none" stroke="#dce6f2" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+      if (doneArr[i]) col += `<path d="${d}" fill="none" stroke="${RAINBOW[i % 8]}" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+    }
+    let nodes = "";
+    LESSONS.forEach((l, i) => {
+      const state = doneArr[i] ? "done" : (i === cur ? "cur" : "lock");
+      const p = pos(i);
+      const letters = l.letters.map(x => x.U).join("");
+      const bg = state === "lock" ? "" : `style="background:${RAINBOW[i % 8]}"`;
+      const badge = state === "done" ? "✓" : state === "lock" ? "🔒" : "";
+      const label = "Level " + (i + 1) + ", letters " + letters + ", " + (state === "done" ? "finished" : state === "cur" ? "your level" : "locked");
+      nodes += `<button class="node ${state}" data-k="${i}" ${state === "lock" ? "disabled" : ""} style="left:${p.x}%;top:${TOP + ROW * i}px" aria-label="${label}">
+        ${state === "cur" ? `<span class="here">You are here</span>` : ""}
+        ${i === 0 && state === "done" ? `<span class="crown" aria-hidden="true">👑</span>` : ""}
+        <span class="circ" ${bg}>${letters}${badge ? `<span class="badge">${badge}</span>` : ""}</span>
+        <span class="num">${i + 1}</span><span class="lab">Level</span>
+        <span class="st" aria-hidden="true">★★★</span>
+      </button>`;
     });
-    $("#view").innerHTML = html;
-    document.querySelectorAll(".lv").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
+    const all = doneCount === n;
+    $("#view").innerHTML = `
+    <h2 class="lvh">Your English levels</h2>
+    <p class="lvp">Alphabet Sounds has ${n} levels. Finish a level and the path turns the next rainbow colour. Tap your level to start.</p>
+    ${all ? `<div class="done-banner"><b>Path complete!</b><span>All ${n} levels finished. The whole path is a rainbow.</span></div>` : ""}
+    <div class="path" style="height:${H}px">
+      <svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" style="height:${H}px" aria-hidden="true">${base}${col}</svg>
+      ${nodes}
+    </div>
+    <p class="lsum">${all ? "All " + n + " levels done" : "Level " + (cur + 1) + " of " + n + " · " + doneCount + (doneCount === 1 ? " level" : " levels") + " done"}</p>
+    <div class="pbar ${all ? "rb" : ""}"><div style="width:${Math.round(100 * doneCount / n)}%"></div></div>`;
+    document.querySelectorAll(".node:not(:disabled)").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
+    setTimeout(() => {
+      const c = document.querySelector(".node.cur");
+      if (c && screen === "sounds") c.scrollIntoView({ block: "center" });
+    }, 60);
   }
 
   // Window 3b: Writing levels. A level opens after the matching Sounds level
