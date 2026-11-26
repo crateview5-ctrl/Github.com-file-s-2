@@ -1,14 +1,12 @@
-// Teacher selection: Adrian (male) or Diana (female). The choice is saved on the device.
-// The two pictures are small copies stored inside this file, so no extra image files are needed.
-const TEACHER_IMG = {
-  adrian: "data:image/jpeg;base64,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",
-  diana: "data:image/jpeg;base64,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"
-};
-
+// Teacher selection: Adrian (male) or Diana (female).
+// The choice is saved on the device. Each teacher can have your own picture, saved on this phone.
+//
+// TEMPORARY FEATURE: the "Upload photo" buttons are only for saving your own character pictures once.
+// When both pictures are saved, ask for the upload buttons to be removed (the pictures stay saved).
 const Teacher = (() => {
   const LIST = [
-    { id: "adrian", name: "Adrian", role: "Male teacher", line: "Calm, kind and patient" },
-    { id: "diana", name: "Diana", role: "Female teacher", line: "Warm, gentle and encouraging" }
+    { id: "adrian", name: "Adrian", role: "Male teacher", line: "Calm, kind and patient", initial: "A" },
+    { id: "diana", name: "Diana", role: "Female teacher", line: "Warm, gentle and encouraging", initial: "D" }
   ];
   // Voice folders that exist on GitHub (audio/adrian/ ...). Diana's clips are not uploaded yet,
   // so lessons keep playing Adrian's clips even when Diana is chosen.
@@ -20,46 +18,92 @@ const Teacher = (() => {
   const info = id => LIST.find(t => t.id === id) || LIST[0];
   const audioDir = () => (VOICE_READY[current()] ? current() : "adrian");
 
+  // ---- pictures saved on this phone (IndexedDB keeps the original quality) ----
+  const dbOpen = () => new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open("bs_teacher_pics", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("pics");
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+  const picGet = id => dbOpen().then(db => new Promise(res => {
+    const q = db.transaction("pics").objectStore("pics").get(id);
+    q.onsuccess = () => res(q.result || null);
+    q.onerror = () => res(null);
+  })).catch(() => null);
+  const picSet = (id, blob) => dbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction("pics", "readwrite");
+    tx.objectStore("pics").put(blob, id);
+    tx.oncomplete = () => res(true);
+    tx.onerror = () => rej(tx.error);
+  }));
+
   function addStyles() {
     if (document.getElementById("teacher-css")) return;
     const s = document.createElement("style");
     s.id = "teacher-css";
     s.textContent = `
     .tgrid{display:flex;gap:12px;margin-bottom:14px}
-    .tcard{flex:1;position:relative;border:4px solid #cfe3f3;border-radius:24px;background:#fff;padding:12px 8px 14px;font:inherit;color:var(--ink);text-align:center;box-shadow:0 4px 0 #c9e3f5}
-    .tcard img{display:block;width:100%;max-width:170px;aspect-ratio:1/1;object-fit:cover;object-position:top;border-radius:20px;margin:0 auto 8px;background:#e6edf5}
-    .tcard b{display:block;font-size:1.35rem}
-    .tcard span{display:block;font-size:.9rem;margin-top:2px;font-weight:700;color:#4a5b78}
-    .tcard small{display:block;font-size:.8rem;margin-top:4px;color:#5b6b80}
+    .tcard{flex:1;position:relative;border:4px solid #cfe3f3;border-radius:24px;background:#fff;padding:10px 8px 12px;text-align:center;box-shadow:0 4px 0 #c9e3f5}
+    .tsel{display:block;width:100%;border:0;background:none;font:inherit;color:var(--ink);padding:0}
+    .tpic{position:relative;width:100%;max-width:170px;aspect-ratio:1/1;margin:0 auto 8px;border-radius:20px;overflow:hidden;background:#cfe3f3;display:flex;align-items:center;justify-content:center;font-size:4rem;font-weight:800;color:#7aa3c4}
+    .tpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+    .tsel b{display:block;font-size:1.35rem}
+    .tsel span{display:block;font-size:.9rem;margin-top:2px;font-weight:700;color:#4a5b78}
+    .tsel small{display:block;font-size:.8rem;margin-top:4px;color:#5b6b80}
     .tcard.on{border-color:var(--green);background:#e3f8ec;box-shadow:0 4px 0 #1c8f52}
     .tcard.on::after{content:"\\2713";position:absolute;top:8px;right:8px;width:30px;height:30px;line-height:30px;border-radius:50%;background:var(--green);color:#fff;font-weight:800}
+    .tup{display:block;margin-top:10px;padding:10px 6px;border-radius:14px;background:var(--sun);color:var(--ink);font-weight:700;font-size:.9rem}
+    .tup input{display:none}
     .tnote{min-height:1.4em;font-weight:700;color:#b05a00;text-align:center;margin:4px 0 0}
-    .big .tthumb{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:top;background:#fff}
     .btn[disabled]{opacity:.45}`;
     document.head.appendChild(s);
   }
 
-  function show() {
+  // opts.setTitle(text) sets the top bar title; opts.done() goes on to the home screen.
+  async function show(opts) {
     addStyles();
-    App.setTitle("Your Teacher");
+    opts.setTitle("Choose your teacher");
     const view = document.querySelector("#view");
+    const urls = {};
+    for (const t of LIST) {
+      const blob = await picGet(t.id);
+      if (blob) urls[t.id] = URL.createObjectURL(blob);
+    }
+    let msg = "";
     const draw = () => {
       const pick = get();
+      const note = msg || (pick && !VOICE_READY[pick] ? info(pick).name + "'s voice is coming soon. For now the lessons use Adrian's voice." : "");
       view.innerHTML = `
       <div class="card hello"><p class="q">Choose your teacher</p></div>
       <div class="tgrid">` + LIST.map(t => `
-        <button class="tcard${pick === t.id ? " on" : ""}" data-id="${t.id}" aria-pressed="${pick === t.id}">
-          <img src="${TEACHER_IMG[t.id]}" alt="${t.name}, ${t.role.toLowerCase()}">
-          <b>${t.name}</b><span>${t.role}</span><small>${t.line}</small>
-        </button>`).join("") + `
+        <div class="tcard${pick === t.id ? " on" : ""}">
+          <button class="tsel" data-id="${t.id}" aria-pressed="${pick === t.id}">
+            <div class="tpic">${t.initial}${urls[t.id] ? `<img src="${urls[t.id]}" alt="${t.name}">` : ""}</div>
+            <b>${t.name}</b><span>${t.role}</span><small>${t.line}</small>
+          </button>
+          <label class="tup">📷 Upload photo<input type="file" accept="image/*" data-up="${t.id}"></label>
+        </div>`).join("") + `
       </div>
-      <p class="tnote" id="tnote">${pick && !VOICE_READY[pick] ? info(pick).name + "'s voice is coming soon. For now the lessons use Adrian's voice." : ""}</p>
+      <p class="tnote">${note}</p>
       <button class="btn go" id="tgo"${pick ? "" : " disabled"}>${pick ? "Continue" : "Tap a teacher"}</button>`;
-      view.querySelectorAll(".tcard").forEach(b => b.onclick = () => { store.set("teacher", b.dataset.id); draw(); });
-      view.querySelector("#tgo").onclick = () => { if (get()) App.go("home"); };
+      view.querySelectorAll(".tsel").forEach(b => b.onclick = () => { msg = ""; store.set("teacher", b.dataset.id); draw(); });
+      view.querySelectorAll("[data-up]").forEach(inp => inp.onchange = () => {
+        const f = inp.files && inp.files[0];
+        if (!f) return;
+        const id = inp.dataset.up;
+        picSet(id, f).then(() => {
+          if (urls[id]) URL.revokeObjectURL(urls[id]);
+          urls[id] = URL.createObjectURL(f);
+          msg = info(id).name + "'s photo is saved on this phone.";
+          draw();
+        }).catch(() => { msg = "Could not save the photo on this phone."; draw(); });
+      });
+      view.querySelector("#tgo").onclick = () => { if (get()) opts.done(); };
     };
     draw();
   }
 
-  return { show, get, current, info, audioDir, thumb: () => TEACHER_IMG[current()] };
+  return { show, get, current, info, audioDir };
 })();
