@@ -102,15 +102,15 @@ const store = {
 
 const App = (() => {
   const $ = s => document.querySelector(s);
-  let stars = store.get("stars", 0), screen = "home", current = null;
+  let stars = store.get("stars", 0), screen = "splash", current = null;
   const showStars = () => { $("#stars").textContent = "⭐ " + stars; };
 
-  // Screens: home -> english (two cards) -> sounds (levels) -> lesson
-  //                                      -> writing (levels) -> write
-  //                 -> teacher (choose Adrian or Diana)
+  // Every time the app opens: splash (logo) -> teacher (choose Adrian or Diana) -> home
+  // home -> english (two cards) -> sounds (levels) -> lesson
+  //                              -> writing (levels) -> write
   // go("path") means "back to the list I came from", so lesson/writing files
   // that still say go("path") land on the right list.
-  const BACK = { english: "home", teacher: "home", sounds: "english", writing: "english", lesson: "sounds", write: "writing" };
+  const BACK = { english: "home", sounds: "english", writing: "english", lesson: "sounds", write: "writing" };
 
   function go(name) {
     if (name === "path") {
@@ -118,11 +118,12 @@ const App = (() => {
         : (screen === "lesson" || screen === "sounds") ? "sounds" : "english";
     }
     screen = name;
-    $("#back").hidden = name === "home";
+    $("#back").hidden = name === "home" || name === "splash" || name === "teacher";
     $("#progress").hidden = !(name === "lesson" || name === "write");
-    if (name === "home") home();
+    if (name === "splash") splash();
+    else if (name === "teacher") Teacher.show({ setTitle, done: () => go("home") });
+    else if (name === "home") home();
     else if (name === "english") english();
-    else if (name === "teacher") Teacher.show();
     else if (name === "sounds") sounds();
     else if (name === "writing") writing();
     else if (name === "lesson") English.start(current);
@@ -133,17 +134,25 @@ const App = (() => {
   function open(lesson) { current = lesson; go("lesson"); }
   function openWriting(lesson) { current = lesson; go("write"); }
 
+  // Logo screen for a moment, then the teacher choice.
+  function splash() {
+    setTitle("BrightSteps");
+    $("#view").innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center">
+      <img src="icon-512.png" alt="BrightSteps logo" style="width:200px;height:200px;border-radius:44px;box-shadow:0 6px 0 #c9e3f5">
+      <h2 style="margin:18px 0 0">BrightSteps Learning</h2>
+    </div>`;
+    setTimeout(() => { if (screen === "splash") go("teacher"); }, 1800);
+  }
+
   function home() {
     setTitle("BrightSteps");
-    const tc = Teacher.info(Teacher.current());
     $("#view").innerHTML = `
     <div class="card hello"><p class="q">What shall we learn today?</p></div>
     <button class="big en" id="en"><b>📖</b><span>English &amp; Reading</span></button>
     <button class="big soon" disabled><b>🔢</b><span>Maths<small>Coming soon</small></span></button>
-    <button class="big soon" disabled><b>🤖</b><span>AI Learning Buddy<small>Coming soon</small></span></button>
-    <button class="big en" id="tc"><img class="tthumb" src="${Teacher.thumb()}" alt=""><span>Your teacher: ${tc.name}<small>Tap to change</small></span></button>`;
+    <button class="big soon" disabled><b>🤖</b><span>AI Learning Buddy<small>Coming soon</small></span></button>`;
     $("#en").onclick = () => go("english");
-    $("#tc").onclick = () => go("teacher");
   }
 
   // Window 2: only the two sections.
@@ -213,8 +222,7 @@ const App = (() => {
   function setBest(id, n) { store.set("best_" + id, n); }
 
   $("#back").onclick = () => go(BACK[screen] || "home");
-  // First time on this device: choose a teacher first. After that, straight to home.
-  showStars(); go(Teacher.get() ? "home" : "teacher");
+  showStars(); go("splash");
 
   if ("serviceWorker" in navigator) {
     const hadController = !!navigator.serviceWorker.controller;
