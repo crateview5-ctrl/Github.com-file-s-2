@@ -40,9 +40,6 @@ function audioNote(t) {
 // Until Diana's clips are uploaded this stays "adrian" even if Diana is chosen.
 const tdir = () => (typeof Teacher !== "undefined" ? Teacher.audioDir() : "adrian");
 
-// Level colours, in order. Each finished level takes the next colour; the ninth is green again.
-const RAINBOW = ["#22a464", "#2783cc", "#4f55c4", "#8b46c7", "#c44fae", "#e5484d", "#f2760a", "#d99400"];
-
 const Snd = {
   tok: 0,
   cur: null,
@@ -108,12 +105,14 @@ const App = (() => {
   let stars = store.get("stars", 0), screen = "splash", current = null;
   const showStars = () => { $("#stars").textContent = "⭐ " + stars; };
 
-  // Every time the app opens: splash (logo) -> teacher (choose Adrian or Diana) -> home
-  // home -> english (two cards) -> sounds (levels) -> lesson
-  //                              -> writing (levels) -> write
+  // Every time the app opens: splash (logo) -> home (book shelf) -> teacher -> english (two cards)
+  //   english -> sounds (levels) -> lesson            (after level 9: complete, once)
+  //           -> writing (levels) -> write
   // go("path") means "back to the list I came from", so lesson/writing files
   // that still say go("path") land on the right list.
-  const BACK = { english: "home", sounds: "english", writing: "english", lesson: "sounds", write: "writing" };
+  const BACK = { teacher: "home", english: "teacher", sounds: "english", writing: "english", lesson: "sounds", write: "writing", complete: "sounds" };
+  // These four screens are the final design; they bring their own app bar.
+  const DESIGN = ["home", "teacher", "sounds", "complete"];
 
   function go(name) {
     if (name === "path") {
@@ -121,14 +120,17 @@ const App = (() => {
         : (screen === "lesson" || screen === "sounds") ? "sounds" : "english";
     }
     screen = name;
-    $("#back").hidden = name === "home" || name === "splash" || name === "teacher";
+    const design = DESIGN.includes(name);
+    document.body.classList.toggle("design", design);
+    document.documentElement.classList.toggle("white", name === "sounds" || name === "complete");
+    $("#back").hidden = design || name === "splash";
     $("#progress").hidden = !(name === "lesson" || name === "write");
-    document.documentElement.classList.toggle("white", name === "sounds");
     if (name === "splash") splash();
-    else if (name === "teacher") Teacher.show({ setTitle, done: () => go("home") });
     else if (name === "home") home();
+    else if (name === "teacher") Teacher.show({ stars, back: () => go("home"), done: () => go("english") });
     else if (name === "english") english();
     else if (name === "sounds") sounds();
+    else if (name === "complete") complete();
     else if (name === "writing") writing();
     else if (name === "lesson") English.start(current);
     else if (name === "write") Writing.start(current);
@@ -138,7 +140,7 @@ const App = (() => {
   function open(lesson) { current = lesson; go("lesson"); }
   function openWriting(lesson) { current = lesson; go("write"); }
 
-  // Logo screen for a moment, then the teacher choice.
+  // Logo screen for a moment, then the home screen.
   function splash() {
     setTitle("BrightSteps");
     $("#view").innerHTML = `
@@ -146,68 +148,107 @@ const App = (() => {
       <img src="icon-512.png" alt="BrightSteps logo" style="width:200px;height:200px;border-radius:44px;box-shadow:0 6px 0 #c9e3f5">
       <h2 style="margin:18px 0 0;font-family:var(--disp)">BrightSteps Learning</h2>
     </div>`;
-    setTimeout(() => { if (screen === "splash") go("teacher"); }, 1800);
+    setTimeout(() => { if (screen === "splash") go("home"); }, 1800);
   }
 
-  // Home: the library bookshelf. Only the English book opens something for now.
+  // ---------- shared pieces of the final design ----------
+  const STAR_D = "M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9L12 2.6z";
+  const starIcon = (size, fill) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><path d="${STAR_D}" fill="${fill}"/></svg>`;
+  const pill = () => `<span class="stars" aria-label="${stars} stars">${starIcon(16, "#ffc82e")}${stars}</span>`;
+  const BACK_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
+  const TICK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const LOCK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
+  const BURST = '<div class="burst" aria-hidden="true"><svg width="66" height="40" viewBox="0 0 88 54"><g fill="#f6a609"><polygon points="44,54 2,22 14,14"/><polygon points="44,54 20,8 30,6"/><polygon points="44,54 38,2 50,2"/><polygon points="44,54 58,6 68,8"/><polygon points="44,54 74,14 86,22"/></g><g fill="#ffc82e"><path transform="translate(8,18)" d="M-8 5.6 L-7.7 -4.9 L-3 -0.7 L0 -6.9 L3 -0.7 L7.7 -4.9 L8 5.6 Z M-8 7.1 h16 v2.1 H-8 Z"/><path transform="translate(25,9) scale(1.1)" d="M-8 5.6 L-7.7 -4.9 L-3 -0.7 L0 -6.9 L3 -0.7 L7.7 -4.9 L8 5.6 Z M-8 7.1 h16 v2.1 H-8 Z"/><path transform="translate(44,7) scale(1.25)" d="M-8 5.6 L-7.7 -4.9 L-3 -0.7 L0 -6.9 L3 -0.7 L7.7 -4.9 L8 5.6 Z M-8 7.1 h16 v2.1 H-8 Z"/><path transform="translate(63,9) scale(1.1)" d="M-8 5.6 L-7.7 -4.9 L-3 -0.7 L0 -6.9 L3 -0.7 L7.7 -4.9 L8 5.6 Z M-8 7.1 h16 v2.1 H-8 Z"/><path transform="translate(80,18)" d="M-8 5.6 L-7.7 -4.9 L-3 -0.7 L0 -6.9 L3 -0.7 L7.7 -4.9 L8 5.6 Z M-8 7.1 h16 v2.1 H-8 Z"/></g></svg></div>';
+
+  // ---------- 01 Home: book shelf ----------
+  // Only the English & Reading book opens something. The other books are "Coming soon".
   function home() {
     setTitle("BrightSteps");
+    const n = LESSONS.length;
     const done = LESSONS.filter(l => isDone(l.id)).length;
-    const filled = Math.min(3, Math.floor(3 * done / LESSONS.length));
-    const starRow = [0, 1, 2].map(i => `<span class="${i < filled ? "" : "off"}">★</span>`).join("");
-    const heights = [30, 22, 40, 28, 36, 24, 34, 26];
-    const spines = RAINBOW.map((c, i) => `<i style="background:${c};height:${heights[i]}px;animation-delay:${(0.15 + i * 0.08).toFixed(2)}s"></i>`).join("");
+    const filled = Math.min(3, Math.floor(3 * done / n));
+    const rowStars = [0, 1, 2].map(i => starIcon(14, i < filled ? "#ffc82e" : "rgba(255,255,255,.35)")).join("");
+    const spines = [[30, "#22a464"], [24, "#2783cc"], [33, "#4f55c4"], [27, "#8b46c7"], [31, "#c44fae"], [22, "#e5484d"], [29, "#f2760a"], [26, "#d99400"]]
+      .map(s => `<i style="height:${s[0]}px;background:${s[1]}"></i>`).join("");
     $("#view").innerHTML = `
-    <div class="hero">
-      <div class="kick">The BrightSteps library</div>
-      <h2>Pick a book, <span>start learning</span></h2>
-      <div class="spines" aria-hidden="true">${spines}</div>
-    </div>
-    <div class="shelf">
-      <div class="shelf-h">Start learning <small>Shelf 1</small></div>
-      <div class="books">
-        <button class="book eng" id="en" aria-label="English and Reading. Start here">
-          <span class="tag">Start here</span>
-          <span class="bk">Aa</span>
-          <span class="nm">English &amp; Reading</span>
-          <span class="sub">Sounds and writing</span>
-          <span class="rule"></span>
-          <span class="bstars">${starRow}<span class="go" aria-hidden="true">›</span></span>
-        </button>
-        <div class="book mth">
-          <span class="bk">123</span>
-          <span class="nm">Maths</span>
-          <span class="sub">Counting</span>
-          <span class="rule"></span>
-          <span class="pill">Coming soon</span>
+    <div class="phone" id="phone-home">
+      <div class="screen">
+        <div class="appbar">
+          <div class="brand">
+            <span class="mark" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 19c4-1 5-4 5-8V6.5C9 4.6 7.8 3.5 6.4 3.5 4.9 3.5 4 4.9 4 7v12Zm16 0c-4-1-5-4-5-8V6.5c0-1.9 1.2-3 2.6-3C19.1 3.5 20 4.9 20 7v12Z" fill="#1c2e4f" opacity=".9"/></svg></span>
+            BrightSteps
+          </div>
+          ${pill()}
+        </div>
+        <div class="appbody">
+          <div class="lib-hero">
+            <div class="lh-top">
+              <div class="lh-txt">
+                <span class="lh-kicker">The BrightSteps Library</span>
+                <h3>Pick a book, <em>start learning</em></h3>
+              </div>
+            </div>
+            <div class="spines" aria-hidden="true">${spines}</div>
+          </div>
+          <div class="library">
+            <div class="shelf-label"><b>Start learning</b><span>Shelf 1</span></div>
+            <div class="shelf">
+              <button class="book bk-english" id="btn-english" type="button" aria-label="English and Reading book — tap to open it">
+                <span class="bk-top">
+                  <span class="bk-glyph" aria-hidden="true">Aa</span>
+                  <span class="bk-flag" aria-hidden="true">Start here</span>
+                </span>
+                <span class="bk-foot">
+                  <span class="bk-name">English &amp; Reading</span>
+                  <span class="bk-meta">Alphabet Sounds</span>
+                  <span class="bk-rule" style="background:#ffc82e" aria-hidden="true"></span>
+                  <span class="bk-row" aria-label="${filled} of 3 stars earned">
+                    ${rowStars}
+                    <span class="bk-open" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+                  </span>
+                </span>
+              </button>
+              <div class="book" style="background:var(--yellow);color:var(--navy)" aria-label="Maths book, coming soon">
+                <span class="bk-top"><span class="bk-glyph" aria-hidden="true">123</span></span>
+                <span class="bk-foot">
+                  <span class="bk-name">Maths</span>
+                  <span class="bk-meta">Counting</span>
+                  <span class="bk-rule" style="background:rgba(28,46,79,.5)" aria-hidden="true"></span>
+                  <span class="bk-row"><span class="bk-tag tag-navy">Coming soon</span></span>
+                </span>
+              </div>
+            </div>
+            <div class="shelf-board" aria-hidden="true"></div>
+            <div class="shelf-label"><b>More to explore</b><span>Shelf 2</span></div>
+            <div class="shelf">
+              <div class="book" style="background:var(--navy);color:#fff" aria-label="AI Learning Buddy book, coming soon">
+                <span class="bk-top"><span class="bk-medal" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="8" width="15" height="11" rx="3.5"/><path d="M12 8V4.8M12 4.8h.01"/><circle cx="12" cy="4.6" r="1.4"/><circle cx="9" cy="13" r=".6" fill="#fff"/><circle cx="15" cy="13" r=".6" fill="#fff"/><path d="M9.5 16.2c.8.6 4.2.6 5 0"/></svg></span></span>
+                <span class="bk-foot">
+                  <span class="bk-name">AI Learning Buddy</span>
+                  <span class="bk-meta">Talk &amp; learn</span>
+                  <span class="bk-rule" style="background:#ffc82e" aria-hidden="true"></span>
+                  <span class="bk-row"><span class="bk-tag tag-yellow">Coming soon</span></span>
+                </span>
+              </div>
+              <div class="book on-soft" style="background:#dcebfd;color:var(--navy)" aria-label="Rhymes and Stories book, coming soon">
+                <span class="bk-top"><span class="bk-medal" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2783cc" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span></span>
+                <span class="bk-foot">
+                  <span class="bk-name">Rhymes &amp; Stories</span>
+                  <span class="bk-meta">Songs &amp; stories</span>
+                  <span class="bk-rule" style="background:#2783cc" aria-hidden="true"></span>
+                  <span class="bk-row"><span class="bk-tag tag-navy">Coming soon</span></span>
+                </span>
+              </div>
+            </div>
+            <div class="shelf-board last" aria-hidden="true"></div>
+          </div>
         </div>
       </div>
-      <div class="board"></div>
-    </div>
-    <div class="shelf">
-      <div class="shelf-h">More to explore <small>Shelf 2</small></div>
-      <div class="books">
-        <div class="book ai">
-          <span class="ico" aria-hidden="true">🤖</span>
-          <span class="nm">AI Learning Buddy</span>
-          <span class="sub">Talk &amp; learn</span>
-          <span class="rule"></span>
-          <span class="pill">Coming soon</span>
-        </div>
-        <div class="book rh">
-          <span class="ico" aria-hidden="true">🎵</span>
-          <span class="nm">Rhymes &amp; Stories</span>
-          <span class="sub">Songs &amp; stories</span>
-          <span class="rule"></span>
-          <span class="pill">Coming soon</span>
-        </div>
-      </div>
-      <div class="board"></div>
     </div>`;
-    $("#en").onclick = () => go("english");
+    $("#btn-english").onclick = () => go("teacher");
   }
 
-  // Window 2: only the two sections.
+  // Window 3 (not in the design, kept from the app): the two sections.
   function english() {
     setTitle("English & Reading");
     const soundsDone = LESSONS.filter(l => isDone(l.id)).length;
@@ -221,67 +262,126 @@ const App = (() => {
     $("#wr").onclick = () => go("writing");
   }
 
-  const rgba = (h, a) => { const v = parseInt(h.slice(1), 16); return "rgba(" + (v >> 16) + "," + ((v >> 8) & 255) + "," + (v & 255) + "," + a + ")"; };
-  const LOCK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d90ac" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-  const TICK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22a464" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-  // Three gold crowns fanned out above the first finished level (as in the final design).
-  const ONE_CROWN = '<path d="M22 26 L24 12 L29 18 L35 8 L41 18 L46 12 L48 26 Z" fill="#f7b500" stroke="#d99400" stroke-width="1.6" stroke-linejoin="round"/><rect x="22" y="23" width="26" height="3.5" rx="1.5" fill="#e49b00"/>';
-  const CROWN_SVG = '<svg class="crown" viewBox="0 0 70 44" aria-hidden="true"><g transform="rotate(-38 35 44)">' + ONE_CROWN + '</g><g transform="rotate(38 35 44)">' + ONE_CROWN + '</g>' + ONE_CROWN + '</svg>';
+  // ---------- the levels path (screens 03 and 04 share it) ----------
+  const POS = [[50, 70], [75, 170], [25, 170], [50, 270], [75, 370], [25, 370], [50, 470], [75, 570], [25, 570]];
+  const TRACK = "M158 70 H237 A50 50 0 0 1 237 170 H79 A50 50 0 0 0 79 270 H237 A50 50 0 0 1 237 370 H79 A50 50 0 0 0 79 470 H237 A50 50 0 0 1 237 570 H79";
+  const SEGS = [["s-g", "M158 70 H237 A50 50 0 0 1 237 170"], ["s-b", "M237 170 H79"], ["s-i", "M79 170 A50 50 0 0 0 79 270 H158"], ["s-v", "M158 270 H237 A50 50 0 0 1 237 370"], ["s-p", "M237 370 H79"], ["s-r", "M79 370 A50 50 0 0 0 79 470 H158"], ["s-o", "M158 470 H237 A50 50 0 0 1 237 570"], ["s-y", "M237 570 H79"]];
 
-  // Window 3a: Sounds levels on a zigzag rainbow path (same layout as the final design):
-  // level 1 in the middle, then right, left, middle, right, left, middle ...
-  // A level opens when the level before it is finished. Finished levels can be replayed.
+  function pathHTML(doneArr, cur) {
+    const seg = SEGS.map((s, i) => `<path class="seg ${doneArr[i] ? "on " : ""}${s[0]}" d="${s[1]}"/>`).join("");
+    let nodes = "";
+    LESSONS.forEach((l, i) => {
+      const k = i + 1;
+      const state = doneArr[i] ? "done" : (i === cur ? "current" : "locked");
+      const letters = l.letters.map(x => x.U).join("");
+      const spaced = l.letters.map(x => x.U).join(" ");
+      const label = state === "done" ? "Level · Finished" : state === "current" ? "Level · Tap to start" : "Level · Locked";
+      const aria = "Level " + k + " — letters " + spaced + ", " + (state === "done" ? "finished" : state === "current" ? "your current level — tap to start it" : "locked — finish Level " + (k - 1) + " to open it");
+      const badge = state === "done" ? TICK_SVG : state === "locked" ? LOCK_SVG : "";
+      const stars3 = [0, 1, 2].map(() => `<svg width="15" height="15" viewBox="0 0 24 24"><path d="${STAR_D}"/></svg>`).join("");
+      nodes += `
+      <div class="lvl st-${state}${state === "done" ? " done-c" + k : ""}" style="left:${POS[i][0]}%;top:${POS[i][1]}px">
+        ${i === 0 && state === "done" ? BURST : ""}
+        <button class="lvl-node" type="button" data-lvl="${i}" ${state === "locked" ? "disabled" : ""} aria-label="${aria}">
+          ${state === "current" ? '<span class="here" aria-hidden="true">You are here</span>' : ""}
+          <span class="lvl-sign sg-abc">${letters}</span>
+          <span class="lvl-badge" aria-hidden="true">${badge}</span>
+        </button>
+        <div class="lvl-label">
+          <span class="lt">${k}</span>
+          <span class="ls">${label}</span>
+          <span class="lstar" aria-label="${state === "done" ? "3 stars earned" : "No stars yet"}">${stars3}</span>
+        </div>
+      </div>`;
+    });
+    return `<div class="path2-wrap">
+      <svg class="path2-svg" viewBox="0 0 316 680" preserveAspectRatio="none" aria-hidden="true">
+        <path class="track" d="${TRACK}"/>${seg}
+      </svg>${nodes}
+    </div>`;
+  }
+
+  // ---------- 03 English levels: Alphabet Sounds ----------
+  // A level opens when the level before it is finished. Tapping a level opens its lesson.
   function sounds() {
-    setTitle("English & Reading");
-    const n = LESSONS.length, ROW = 104, TOP = 46, R = 32;
-    const X = { L: 27, C: 50, R: 73 };
-    const colOf = i => i === 0 ? "C" : ["R", "L", "C"][(i - 1) % 3];
-    const rowOf = i => i === 0 ? 0 : (colOf(i) === "C" ? 2 : 1) + 2 * Math.floor((i - 1) / 3);
-    const P = i => ({ x: X[colOf(i)], y: TOP + ROW * rowOf(i) + R, c: colOf(i) });
-    const H = TOP + ROW * rowOf(n - 1) + 142;
+    const n = LESSONS.length;
     const doneArr = LESSONS.map(l => isDone(l.id));
     const doneCount = doneArr.filter(Boolean).length;
     const cur = doneArr.indexOf(false);
     const all = doneCount === n;
-    let base = "", col = "";
-    for (let i = 0; i < n - 1; i++) {
-      const a = P(i), b = P(i + 1);
-      let d;
-      if (a.y === b.y) d = `M${a.x} ${a.y} L${b.x} ${b.y}`;
-      else { const bx = a.c === "C" ? 94 : 6; d = `M${a.x} ${a.y} C${bx} ${a.y} ${bx} ${b.y} ${b.x} ${b.y}`; }
-      base += `<path d="${d}" fill="none" stroke="#d3dff0" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
-      if (doneArr[i]) col += `<path d="${d}" fill="none" stroke="${RAINBOW[i % 8]}" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
-    }
-    let nodes = "";
-    LESSONS.forEach((l, i) => {
-      const state = doneArr[i] ? "done" : (i === cur ? "cur" : "lock");
-      const p = P(i), c = RAINBOW[i % 8];
-      const letters = l.letters.map(x => x.U).join("");
-      const words = state === "done" ? "Finished" : state === "cur" ? "Tap to start" : "Locked";
-      const badge = state === "done" ? TICK_SVG : state === "lock" ? LOCK_SVG : "";
-      const crown = i === 0 && state === "done" ? CROWN_SVG : "";
-      nodes += `<button class="node ${state}" data-k="${i}" ${state === "lock" ? "disabled" : ""} style="left:${p.x}%;top:${TOP + ROW * rowOf(i)}px" aria-label="Level ${i + 1}, letters ${letters}, ${words.toLowerCase()}">
-        ${state === "cur" ? `<span class="here">You are here</span>` : ""}
-        <span class="circ" ${state === "lock" ? "" : `style="background:${c};--h1:${rgba(c, 0.18)};--h2:${rgba(c, 0.28)}"`}>${crown}${letters}${badge ? `<span class="badge">${badge}</span>` : ""}</span>
-        <span class="num">${i + 1}</span>
-        <span class="lab">Level · ${words}</span>
-        <span class="st" aria-hidden="true">★★★</span>
-      </button>`;
-    });
+    // Finishing level 9 opens screen 04, All levels complete (once).
+    if (all && !store.get("complete_seen", false)) { store.set("complete_seen", true); return complete(); }
+    setTitle("English & Reading");
+    const prog = all ? "<b>Level " + n + " of " + n + "</b> · " + n + " levels done"
+      : "<b>Level " + (cur + 1) + " of " + n + "</b> · " + doneCount + (doneCount === 1 ? " level done" : " levels done");
     $("#view").innerHTML = `
-    <h2 class="lvh">Your English levels</h2>
-    ${all
-      ? `<div class="done-banner"><b>Path complete!</b><span>All ${n} English levels finished — the whole path turned into a rainbow.</span></div>`
-      : `<p class="lvp">Alphabet Sounds has <b>${n} levels</b>. Finish a level and the path turns the next <b>rainbow</b> colour — green, blue, indigo, violet, pink, red, orange, gold. Tap Level ${cur + 1} to try it.</p>`}
-    <div class="path" style="height:${H}px">
-      <svg class="pathsvg" viewBox="0 0 100 ${H}" preserveAspectRatio="none" style="height:${H}px" aria-hidden="true">${base}${col}</svg>
-      ${nodes}
-    </div>
-    <div class="lcard">
-      <p><i>★</i>${all ? "All " + n + " levels done · " + (3 * n) + " stars earned" : "Level " + (cur + 1) + " of " + n + " · " + doneCount + (doneCount === 1 ? " level" : " levels") + " done"}</p>
-      <div class="pbar ${all ? "rb" : ""}"><div style="width:${Math.round(100 * doneCount / n)}%"></div></div>
+    <div class="phone" id="phone-levels">
+      <div class="screen white">
+        <div class="appbar">
+          <button class="backbtn" id="btn-back2" type="button" aria-label="Back">${BACK_SVG}</button>
+          <span class="ttl">English &amp; Reading</span>
+          <span class="stars" aria-label="Stars earned">${starIcon(16, "#ffc82e")}<span id="lv-stars-num">${stars}</span></span>
+        </div>
+        <div class="appbody">
+          <div class="lv-intro">
+            <h3>Your English levels</h3>
+            <p>Alphabet Sounds has <b>${n} levels</b>. Finish a level and the path turns the next <b>rainbow</b> colour — green, blue, indigo, violet, pink, red, orange, gold.${all ? "" : " Tap Level " + (cur + 1) + " to try it."}</p>
+          </div>
+          ${pathHTML(doneArr, cur)}
+          <div class="success${all ? " show" : ""}" id="lv-finish" role="status">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="10" fill="#166b45"/><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <p>Path complete! You finished all ${n} English levels — the whole path is a rainbow now.</p>
+          </div>
+          <div class="progress">
+            <div class="row">
+              ${starIcon(18, "#ffc82e").replace("<svg ", '<svg style="flex:none" ')}
+              <span id="lv-prog-text">${prog}</span>
+            </div>
+            <div class="bar" role="progressbar" aria-valuenow="${doneCount}" aria-valuemin="0" aria-valuemax="${n}" aria-label="${doneCount} of ${n} levels done"><div class="fill" style="width:${(doneCount * 100 / n).toFixed(1)}%"></div></div>
+          </div>
+        </div>
+      </div>
     </div>`;
-    document.querySelectorAll(".node:not(:disabled)").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
+    $("#btn-back2").onclick = () => go(BACK.sounds);
+    document.querySelectorAll("#phone-levels .lvl-node:not(:disabled)").forEach(b => b.onclick = () => open(LESSONS[b.dataset.lvl]));
+  }
+
+  // ---------- 04 All levels complete ----------
+  // Still screen, as designed: no buttons and no back button on the screen.
+  // The phone's own back button returns to the levels.
+  function complete() {
+    screen = "complete";
+    setTitle("English & Reading");
+    const n = LESSONS.length;
+    const doneArr = LESSONS.map(() => true);
+    $("#view").innerHTML = `
+    <div class="phone" id="phone-complete">
+      <div class="screen white">
+        <div class="appbar">
+          <span class="ttl">English &amp; Reading</span>
+          <span class="stars" aria-label="${stars} stars earned">${starIcon(16, "#ffc82e")}<span>${stars}</span></span>
+        </div>
+        <div class="appbody">
+          <div class="done-banner">
+            <h3>Path complete!</h3>
+            <p>All ${n} English levels finished — the whole path turned into a rainbow.</p>
+            <div class="rainbow-bar" aria-hidden="true"></div>
+          </div>
+          ${pathHTML(doneArr, -1).replace(/ data-lvl="\d+"/g, "").replace(/<button class="lvl-node" type="button" /g, '<button class="lvl-node" type="button" disabled ')}
+          <div class="progress">
+            <div class="row">
+              ${starIcon(18, "#ffc82e").replace("<svg ", '<svg style="flex:none" ')}
+              <span><b>All ${n} levels done</b> · ${3 * n} stars earned</span>
+            </div>
+            <div class="bar" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="${n}" aria-label="${n} of ${n} levels done"><div class="fill" style="width:100%;background:linear-gradient(90deg,#22a464,#2783cc,#4f55c4,#8b46c7,#c44fae,#e5484d,#f2760a,#d99400)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    try {
+      history.pushState({ bs: "complete" }, "");
+      window.onpopstate = () => { if (screen === "complete") go("sounds"); };
+    } catch (e) {}
   }
 
   // Window 3b: Writing levels. A level opens after the matching Sounds level
