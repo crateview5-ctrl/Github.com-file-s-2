@@ -145,7 +145,7 @@ const App = (() => {
     setTitle("BrightSteps");
     $("#view").innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center">
-      <img src="icon-512.png" alt="BrightSteps logo" style="width:200px;height:200px;border-radius:44px;box-shadow:0 6px 0 #c9e3f5">
+      <img src="icon-512.png" alt="BrightSteps logo" style="width:220px;height:220px;border-radius:48px;display:block">
       <h2 style="margin:18px 0 0;font-family:var(--disp)">BrightSteps Learning</h2>
     </div>`;
     setTimeout(() => { if (screen === "splash") go("home"); }, 1800);
@@ -195,7 +195,7 @@ const App = (() => {
             <div class="shelf">
               <button class="book bk-english" id="btn-english" type="button" aria-label="English and Reading book — tap to open it">
                 <span class="bk-top">
-                  <span class="bk-glyph" aria-hidden="true">Aa</span>
+                  <img src="icon-192.png" alt="" aria-hidden="true" style="width:52px;height:52px;border-radius:14px;display:block">
                   <span class="bk-flag" aria-hidden="true">Start here</span>
                 </span>
                 <span class="bk-foot">
