@@ -123,6 +123,7 @@ const App = (() => {
     screen = name;
     $("#back").hidden = name === "home" || name === "splash" || name === "teacher";
     $("#progress").hidden = !(name === "lesson" || name === "write");
+    document.documentElement.classList.toggle("white", name === "sounds");
     if (name === "splash") splash();
     else if (name === "teacher") Teacher.show({ setTitle, done: () => go("home") });
     else if (name === "home") home();
@@ -220,62 +221,64 @@ const App = (() => {
     $("#wr").onclick = () => go("writing");
   }
 
-  // Window 3a: Sounds levels on a winding rainbow path, 3 circles per row (the path snakes
-  // left to right, then right to left), so all 9 levels fit on one screen.
+  const rgba = (h, a) => { const v = parseInt(h.slice(1), 16); return "rgba(" + (v >> 16) + "," + ((v >> 8) & 255) + "," + (v & 255) + "," + a + ")"; };
+  const LOCK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d90ac" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const TICK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22a464" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const CROWN_SVG = '<svg class="crown" viewBox="0 0 46 28" aria-hidden="true"><path d="M3 24 L6 8 L16 16 L23 3 L30 16 L40 8 L43 24 Z" fill="#f7b500" stroke="#d99400" stroke-width="2" stroke-linejoin="round"/><rect x="3" y="22" width="40" height="5" rx="2" fill="#e49b00"/></svg>';
+
+  // Window 3a: Sounds levels on a zigzag rainbow path (same layout as the final design):
+  // level 1 in the middle, then right, left, middle, right, left, middle ...
   // A level opens when the level before it is finished. Finished levels can be replayed.
   function sounds() {
-    setTitle("Alphabet Sounds");
-    const n = LESSONS.length, PER = 3, ROW = 132, TOP = 34, rows = Math.ceil(n / PER), H = TOP + ROW * rows;
-    const COLX = [17, 50, 83];
+    setTitle("English & Reading");
+    const n = LESSONS.length, ROW = 104, TOP = 46, R = 32;
+    const X = { L: 27, C: 50, R: 73 };
+    const colOf = i => i === 0 ? "C" : ["R", "L", "C"][(i - 1) % 3];
+    const rowOf = i => i === 0 ? 0 : (colOf(i) === "C" ? 2 : 1) + 2 * Math.floor((i - 1) / 3);
+    const P = i => ({ x: X[colOf(i)], y: TOP + ROW * rowOf(i) + R, c: colOf(i) });
+    const H = TOP + ROW * rowOf(n - 1) + 142;
     const doneArr = LESSONS.map(l => isDone(l.id));
     const doneCount = doneArr.filter(Boolean).length;
     const cur = doneArr.indexOf(false);
-    const pos = i => {
-      const r = Math.floor(i / PER); let c = i % PER;
-      if (r % 2) c = PER - 1 - c;
-      return { x: COLX[c], y: TOP + ROW * r + 29, r };
-    };
+    const all = doneCount === n;
     let base = "", col = "";
     for (let i = 0; i < n - 1; i++) {
-      const a = pos(i), b = pos(i + 1);
+      const a = P(i), b = P(i + 1);
       let d;
-      if (a.r === b.r) {
-        const m = (a.x + b.x) / 2, w = (i % 2 ? -1 : 1) * 12;
-        d = `M${a.x} ${a.y} C${m} ${a.y + w} ${m} ${b.y - w} ${b.x} ${b.y}`;
-      } else {
-        const o = a.x > 50 ? 14 : -14;
-        d = `M${a.x} ${a.y} C${a.x + o} ${a.y + 6} ${b.x + o} ${b.y - 6} ${b.x} ${b.y}`;
-      }
-      base += `<path d="${d}" fill="none" stroke="#dce6f2" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
-      if (doneArr[i]) col += `<path d="${d}" fill="none" stroke="${RAINBOW[i % 8]}" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+      if (a.y === b.y) d = `M${a.x} ${a.y} L${b.x} ${b.y}`;
+      else { const bx = a.c === "C" ? 94 : 6; d = `M${a.x} ${a.y} C${bx} ${a.y} ${bx} ${b.y} ${b.x} ${b.y}`; }
+      base += `<path d="${d}" fill="none" stroke="#d3dff0" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+      if (doneArr[i]) col += `<path d="${d}" fill="none" stroke="${RAINBOW[i % 8]}" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
     }
     let nodes = "";
     LESSONS.forEach((l, i) => {
       const state = doneArr[i] ? "done" : (i === cur ? "cur" : "lock");
-      const p = pos(i);
+      const p = P(i), c = RAINBOW[i % 8];
       const letters = l.letters.map(x => x.U).join("");
-      const bg = state === "lock" ? "" : `style="background:${RAINBOW[i % 8]}"`;
-      const badge = state === "done" ? "✓" : state === "lock" ? "🔒" : "";
-      const label = "Level " + (i + 1) + ", letters " + letters + ", " + (state === "done" ? "finished" : state === "cur" ? "your level" : "locked");
-      nodes += `<button class="node ${state}" data-k="${i}" ${state === "lock" ? "disabled" : ""} style="left:${p.x}%;top:${TOP + ROW * p.r}px" aria-label="${label}">
+      const words = state === "done" ? "Finished" : state === "cur" ? "Tap to start" : "Locked";
+      const badge = state === "done" ? TICK_SVG : state === "lock" ? LOCK_SVG : "";
+      nodes += `<button class="node ${state}" data-k="${i}" ${state === "lock" ? "disabled" : ""} style="left:${p.x}%;top:${TOP + ROW * rowOf(i)}px" aria-label="Level ${i + 1}, letters ${letters}, ${words.toLowerCase()}">
         ${state === "cur" ? `<span class="here">You are here</span>` : ""}
-        ${i === 0 && state === "done" ? `<span class="crown" aria-hidden="true">👑</span>` : ""}
-        <span class="circ" ${bg}>${letters}${badge ? `<span class="badge">${badge}</span>` : ""}</span>
-        <span class="num">${i + 1}</span><span class="lab">Level</span>
+        ${i === 0 && state === "done" ? CROWN_SVG : ""}
+        <span class="circ" ${state === "lock" ? "" : `style="background:${c};--h1:${rgba(c, 0.18)};--h2:${rgba(c, 0.28)}"`}>${letters}${badge ? `<span class="badge">${badge}</span>` : ""}</span>
+        <span class="num">${i + 1}</span>
+        <span class="lab">Level · ${words}</span>
         <span class="st" aria-hidden="true">★★★</span>
       </button>`;
     });
-    const all = doneCount === n;
     $("#view").innerHTML = `
     <h2 class="lvh">Your English levels</h2>
-    <p class="lvp">Alphabet Sounds has ${n} levels. Finish a level and the path turns the next rainbow colour. Tap your level to start.</p>
-    ${all ? `<div class="done-banner"><b>Path complete!</b><span>All ${n} levels finished. The whole path is a rainbow.</span></div>` : ""}
+    ${all
+      ? `<div class="done-banner"><b>Path complete!</b><span>All ${n} English levels finished — the whole path turned into a rainbow.</span></div>`
+      : `<p class="lvp">Alphabet Sounds has <b>${n} levels</b>. Finish a level and the path turns the next <b>rainbow</b> colour — green, blue, indigo, violet, pink, red, orange, gold. Tap Level ${cur + 1} to try it.</p>`}
     <div class="path" style="height:${H}px">
       <svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" style="height:${H}px" aria-hidden="true">${base}${col}</svg>
       ${nodes}
     </div>
-    <p class="lsum">${all ? "All " + n + " levels done" : "Level " + (cur + 1) + " of " + n + " · " + doneCount + (doneCount === 1 ? " level" : " levels") + " done"}</p>
-    <div class="pbar ${all ? "rb" : ""}"><div style="width:${Math.round(100 * doneCount / n)}%"></div></div>`;
+    <div class="lcard">
+      <p><i>★</i>${all ? "All " + n + " levels done · " + (3 * n) + " stars earned" : "Level " + (cur + 1) + " of " + n + " · " + doneCount + (doneCount === 1 ? " level" : " levels") + " done"}</p>
+      <div class="pbar ${all ? "rb" : ""}"><div style="width:${Math.round(100 * doneCount / n)}%"></div></div>
+    </div>`;
     document.querySelectorAll(".node:not(:disabled)").forEach(b => b.onclick = () => open(LESSONS[b.dataset.k]));
   }
 
