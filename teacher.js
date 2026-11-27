@@ -1,12 +1,13 @@
 // Teacher selection screen of the final design: Mr. Adrian (male) or Ms. Diana (female).
 // Tap a teacher to select; Next goes on (it works even before a teacher is chosen, as designed).
 // The choice is saved on the device and decides whose voice the lessons use.
-// Photos: assets/mr-adrian.jpg and assets/ms-diana.jpg from the design. If those files are not in the
-// repo yet, the pictures saved on this phone earlier (IndexedDB) are shown instead.
+// Photos: assets/mr-adrian.jpg and assets/AI_teacher_character_design_2K_20261011031541.jpg (Ms. Diana,
+// as uploaded). If those files are not in the repo yet, the pictures saved on this phone earlier
+// (IndexedDB) are shown instead.
 const Teacher = (() => {
   const LIST = [
     { id: "adrian", title: "Mr. Adrian", img: "assets/mr-adrian.jpg", alt: "Mr. Adrian, smiling, wearing a navy cardigan over a light blue shirt" },
-    { id: "diana", title: "Ms. Diana", img: "assets/ms-diana.jpg", alt: "Ms. Diana, smiling, wearing a beige blazer over a blue shirt" }
+    { id: "diana", title: "Ms. Diana", img: "assets/AI_teacher_character_design_2K_20261011031541.jpg", alt: "Ms. Diana, smiling, wearing a beige blazer over a blue shirt" }
   ];
   // Voice folders that exist on GitHub (audio/adrian/ ...). Diana's clips are not uploaded yet,
   // so lessons keep playing Adrian's clips even when Diana is chosen.
@@ -32,6 +33,12 @@ const Teacher = (() => {
     q.onsuccess = () => res(q.result || null);
     q.onerror = () => res(null);
   })).catch(() => null);
+  // Save an uploaded photo on this phone (IndexedDB), so it shows in the circle.
+  const picSet = (id, blob) => dbOpen().then(db => new Promise((res, rej) => {
+    const q = db.transaction("pics", "readwrite").objectStore("pics").put(blob, id);
+    q.onsuccess = () => res(true);
+    q.onerror = () => rej(q.error);
+  })).catch(() => false);
 
   const STAR = '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9L12 2.6z" fill="#ffc82e"/></svg>';
   const BACK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
@@ -68,6 +75,10 @@ const Teacher = (() => {
               <span class="role">Tap to choose</span>
             </button>`).join("") + `
           </div>
+          <div class="pic-upload">
+            <label class="upload-btn">Upload Mr. Adrian photo<input type="file" accept="image/*" data-id="adrian" hidden></label>
+            <label class="upload-btn">Upload Ms. Diana photo<input type="file" accept="image/*" data-id="diana" hidden></label>
+          </div>
           <p class="sel-msg" id="sel-msg" aria-live="polite">No teacher chosen yet</p>
           <button class="cta ready" id="btn-continue" type="button">Next</button>
           <div class="success" id="success" role="status">
@@ -80,7 +91,23 @@ const Teacher = (() => {
     // If an image file from the design is missing, use the picture saved on this phone.
     view.querySelectorAll(".teacher img").forEach(img => {
       const id = img.closest(".teacher").dataset.id;
+      if (urls[id]) img.src = urls[id];
       img.onerror = () => { img.onerror = null; if (urls[id]) img.src = urls[id]; };
+    });
+    // Upload buttons: pick a photo on this phone, save it, show it in the circle at once.
+    view.querySelectorAll(".pic-upload input[type=file]").forEach(input => {
+      input.onchange = async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const id = input.dataset.id;
+        const ok = await picSet(id, file);
+        if (!ok) { document.getElementById("sel-msg").textContent = "Photo could not be saved on this phone."; return; }
+        urls[id] = URL.createObjectURL(file);
+        const img = view.querySelector(`.teacher[data-id="${id}"] img`);
+        if (img) { img.onerror = null; img.src = urls[id]; }
+        document.getElementById("sel-msg").textContent = info(id).title + " photo saved";
+        input.value = "";
+      };
     });
     const cards = view.querySelectorAll(".teacher");
     const refresh = () => {
