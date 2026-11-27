@@ -233,3 +233,7 @@ body.design main{padding:0;max-width:430px}
 .screen{border-radius:0;min-height:100vh;min-height:100dvh}
 .appbar{padding-top:calc(16px + env(safe-area-inset-top,0px))}
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none !important} }
+/* Add this to the end of style.css — upload buttons under the teacher cards. */
+.pic-upload{display:flex;gap:10px}
+.pic-upload .upload-btn{flex:1;text-align:center;background:#ffffff;border:1.5px solid #dceaf8;border-radius:14px;padding:11px 8px;font-size:13px;font-weight:800;color:#2783cc;cursor:pointer}
+.pic-upload .upload-btn:active{background:#f0f7ff}
