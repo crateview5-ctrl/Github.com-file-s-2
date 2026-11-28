@@ -1,14 +1,13 @@
-// Start screen animation: the boy climbs the stairs step by step, pauses on each step,
-// then walks through the arch and the app opens (about 3.6 s).
-// Tap anywhere to skip. Needs splash-plate.webp and splash-boy.webp in the repo root;
-// if they are missing, nothing changes and the normal logo screen shows.
+// Start screen animation: the whole original logo image (icon-512.png) animates as one —
+// it rises step by step, as if the boy is climbing up and walking forward through the arch,
+// then the app opens. The image is never cut, re-saved or compressed, so its quality stays
+// exactly as exported. Tap anywhere to skip.
 (function () {
   if (document.getElementById("splash-anim")) return;
-  const plate = new Image(), boy = new Image();
-  let ready = 0;
-  plate.onload = boy.onload = () => { if (++ready === 2) start(); };
-  plate.src = "splash-plate.webp";
-  boy.src = "splash-boy.webp";
+  const img = new Image();
+  img.onload = start;
+  img.onerror = () => {}; // missing image: the normal logo screen shows instead
+  img.src = "icon-512.png";
 
   function start() {
     const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -17,23 +16,20 @@
 #splash-anim{position:fixed;inset:0;z-index:99998;background:#eaf1ff;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s ease}
 #splash-anim.out{opacity:0}
 .sa-logo{position:relative;width:min(62vw,260px);aspect-ratio:1;border-radius:22%;overflow:hidden;box-shadow:0 14px 34px rgba(28,46,79,.22);animation:sa-pop .5s ease-out both}
-.sa-logo img{position:absolute;display:block}
-.sa-plate{inset:0;width:100%;height:100%}
-.sa-boy{left:30.08%;top:33.59%;width:21.29%;height:42%;transform-origin:50% 100%;animation:sa-climb 2.7s .6s cubic-bezier(.45,.05,.4,1) both}
+.sa-logo-img{display:block;width:100%;height:100%;animation:sa-climb 2.7s .6s cubic-bezier(.45,.05,.4,1) both}
 .sa-title{margin:22px 0 0;font-family:var(--disp,'Baloo 2',sans-serif);font-size:26px;font-weight:800;color:#1c2e4f;text-align:center;animation:sa-up .7s 1.2s ease-out both}
 @keyframes sa-pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
 @keyframes sa-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @keyframes sa-climb{
- 0%{transform:translate(0,0) scale(1);opacity:1}
- 12%{transform:translate(22%,-14%) scale(1)}
- 24%{transform:translate(58%,-38%) scale(.99);opacity:1}
- 36%{transform:translate(58%,-38%) scale(.99);opacity:1}
- 52%{transform:translate(72%,-58%) scale(.96)}
- 68%{transform:translate(66%,-82%) scale(.9);opacity:1}
- 82%{transform:translate(58%,-90%) scale(.86);opacity:.35}
- 100%{transform:translate(50%,-95%) scale(.82);opacity:0}
+ 0%{transform:translate(0,0) scale(1)}
+ 15%{transform:translate(1%,-2%) scale(1.02)}
+ 30%{transform:translate(2%,-5%) scale(1.04)}
+ 45%{transform:translate(2%,-5%) scale(1.04)}
+ 60%{transform:translate(3%,-8%) scale(1.07)}
+ 75%{transform:translate(3%,-8%) scale(1.07)}
+ 100%{transform:translate(4%,-12%) scale(1.12)}
 }
-@media (prefers-reduced-motion:reduce){.sa-boy{animation:none}.sa-logo,.sa-title{animation:none}}`;
+@media (prefers-reduced-motion:reduce){.sa-logo-img{animation:none}.sa-logo,.sa-title{animation:none}}`;
     document.head.appendChild(st);
 
     const box = document.createElement("div");
@@ -41,9 +37,8 @@
     box.setAttribute("aria-label", "BrightSteps Learning");
     box.innerHTML = '<div class="sa-logo"></div><h2 class="sa-title">BrightSteps Learning</h2>';
     const logo = box.firstChild;
-    plate.className = "sa-plate"; plate.alt = "";
-    boy.className = "sa-boy"; boy.alt = "";
-    logo.appendChild(plate); logo.appendChild(boy);
+    img.className = "sa-logo-img"; img.alt = "";
+    logo.appendChild(img);
     document.body.appendChild(box);
 
     let done = false;
