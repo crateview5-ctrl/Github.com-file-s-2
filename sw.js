@@ -1,5 +1,5 @@
-const CACHE = "brightsteps-v32";
-const FILES = ["./", "index.html", "style.css", "app.js", "english.js", "lessons.js", "glyphs.js", "writing.js", "teacher.js", "bunny.js", "splash.js", "splash-plate.webp", "splash-boy.webp", "manifest.json", "icon-192.png", "icon-512.png", "recorder.html"];
+const CACHE = "brightsteps-v33";
+const FILES = ["./", "index.html", "style.css", "app.js", "english.js", "lessons.js", "glyphs.js", "writing.js", "teacher.js", "bunny.js", "splash.js", "splash-walk.mp4", "manifest.json", "icon-192.png", "icon-512.png", "recorder.html"];
 // v31: install must never fail as a whole. caches.addAll() rejects if ANY single file
 // 404s, which leaves the old service worker in place and the app looking exactly the
 // same — so each file is cached on its own and a missing one is skipped instead.
