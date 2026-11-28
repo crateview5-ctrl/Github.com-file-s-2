@@ -1,4 +1,4 @@
-// Start screen animation: the approved walk video (splash-walk.mp4, ~10s) plays once —
+// Start screen animation: the approved walk video (496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4, ~10s) plays once —
 // the boy walks up the steps and through the arch, then the app opens.
 // Tap anywhere to skip. If the video cannot play, the original logo shows instead.
 (function () {
@@ -40,7 +40,7 @@
   }
 
   const vid = document.createElement("video");
-  vid.src = "splash-walk.mp4";
+  vid.src = "496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4";
   vid.muted = true; vid.playsInline = true; vid.preload = "auto";
   vid.addEventListener("ended", end);
   vid.addEventListener("error", showStill);
