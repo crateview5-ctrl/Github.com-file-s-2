@@ -1,4 +1,4 @@
-// Start screen animation: the approved walk video (splash-walk.mp4, ~4s) plays once —
+// Start screen animation: the approved walk video (splash-walk.mp4, ~10s) plays once —
 // the boy walks up the steps and through the arch, then the app opens.
 // Tap anywhere to skip. If the video cannot play, the original logo shows instead.
 (function () {
@@ -47,8 +47,8 @@
   const play = vid.play();
   if (play) play.catch(showStill);
   logo.appendChild(vid);
-  // safety: never hold the app longer than 5.5s
-  setTimeout(end, 5500);
+  // safety: never hold the app longer than 11s
+  setTimeout(end, 11000);
 
   function showStill() {
     if (done) return;
