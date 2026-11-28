@@ -195,7 +195,7 @@ const App = (() => {
             <div class="shelf">
               <button class="book bk-english" id="btn-english" type="button" aria-label="English and Reading book — tap to open it">
                 <span class="bk-top">
-                  <img src="icon-192.png" alt="" aria-hidden="true" style="width:52px;height:52px;border-radius:14px;display:block">
+                  <span class="bk-glyph" aria-hidden="true">Aa</span>
                   <span class="bk-flag" aria-hidden="true">Start here</span>
                 </span>
                 <span class="bk-foot">
