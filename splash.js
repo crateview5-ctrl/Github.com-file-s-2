@@ -1,5 +1,7 @@
 // Start screen animation: the approved walk video (496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4, ~10s) plays once —
 // the boy walks up the steps and through the arch, then the app opens.
+// While the video loads, the logo shows (no grey play button). The timer starts only
+// when the video actually starts playing, so the full walk is always seen.
 // Tap anywhere to skip. If the video cannot play, the original logo shows instead.
 (function () {
   if (document.getElementById("splash-anim")) return;
@@ -39,16 +41,19 @@
     return;
   }
 
+  let loadTimer = null;
   const vid = document.createElement("video");
   vid.src = "496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4";
+  vid.poster = "icon-512.png";
   vid.muted = true; vid.playsInline = true; vid.preload = "auto";
   vid.addEventListener("ended", end);
   vid.addEventListener("error", showStill);
+  vid.addEventListener("playing", () => { if (loadTimer) clearTimeout(loadTimer); setTimeout(end, 11000); });
   const play = vid.play();
   if (play) play.catch(showStill);
   logo.appendChild(vid);
-  // safety: never hold the app longer than 11s
-  setTimeout(end, 11000);
+  // absolute safety: if the video never starts, show the still logo and open the app
+  loadTimer = setTimeout(() => { if (!done) showStill(); }, 25000);
 
   function showStill() {
     if (done) return;
