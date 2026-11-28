@@ -1,4 +1,5 @@
-// Start screen animation: the boy from the logo climbs the stairs and walks inside (about 3.6 s).
+// Start screen animation: the boy climbs the stairs step by step, pauses on each step,
+// then walks through the arch and the app opens (about 3.6 s).
 // Tap anywhere to skip. Needs splash-plate.webp and splash-boy.webp in the repo root;
 // if they are missing, nothing changes and the normal logo screen shows.
 (function () {
@@ -24,13 +25,13 @@
 @keyframes sa-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @keyframes sa-climb{
  0%{transform:translate(0,0) scale(1);opacity:1}
- 14%{transform:translate(9%,-12%) scale(1)}
- 28%{transform:translate(23%,-19%) scale(.97)}
- 42%{transform:translate(33%,-31%) scale(.95)}
- 56%{transform:translate(47%,-36%) scale(.92)}
- 70%{transform:translate(61%,-50%) scale(.86)}
- 84%{transform:translate(75%,-55%) scale(.78);opacity:1;filter:brightness(1.15)}
- 100%{transform:translate(89%,-64%) scale(.62);opacity:0;filter:brightness(1.5)}
+ 12%{transform:translate(22%,-14%) scale(1)}
+ 24%{transform:translate(58%,-38%) scale(.99);opacity:1}
+ 36%{transform:translate(58%,-38%) scale(.99);opacity:1}
+ 52%{transform:translate(72%,-58%) scale(.96)}
+ 68%{transform:translate(66%,-82%) scale(.9);opacity:1}
+ 82%{transform:translate(58%,-90%) scale(.86);opacity:.35}
+ 100%{transform:translate(50%,-95%) scale(.82);opacity:0}
 }
 @media (prefers-reduced-motion:reduce){.sa-boy{animation:none}.sa-logo,.sa-title{animation:none}}`;
     document.head.appendChild(st);
