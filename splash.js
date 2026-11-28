@@ -1,66 +1,25 @@
-// Start screen animation: the approved walk video (496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4, ~10s) plays once —
-// the boy walks up the steps and through the arch, then the app opens.
-// While the video loads, the logo shows (no grey play button). The timer starts only
-// when the video actually starts playing, so the full walk is always seen.
-// Tap anywhere to skip. If the video cannot play, the original logo shows instead.
-(function () {
-  if (document.getElementById("splash-anim")) return;
-  const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  const st = document.createElement("style");
-  st.textContent = `
-#splash-anim{position:fixed;inset:0;z-index:99998;background:#eaf1ff;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s ease}
-#splash-anim.out{opacity:0}
-.sa-logo{position:relative;width:min(62vw,260px);aspect-ratio:1;border-radius:22%;overflow:hidden;box-shadow:0 14px 34px rgba(28,46,79,.22)}
-.sa-logo video,.sa-logo img{display:block;width:100%;height:100%;object-fit:cover}
-.sa-title{margin:22px 0 0;font-family:var(--disp,'Baloo 2',sans-serif);font-size:26px;font-weight:800;color:#1c2e4f;text-align:center;animation:sa-up .7s .4s ease-out both}
-@keyframes sa-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.sa-title{animation:none}}`;
-  document.head.appendChild(st);
-
-  const box = document.createElement("div");
-  box.id = "splash-anim";
-  box.setAttribute("aria-label", "BrightSteps Learning");
-  box.innerHTML = '<div class="sa-logo"></div><h2 class="sa-title">BrightSteps Learning</h2>';
-  const logo = box.firstChild;
-  document.body.appendChild(box);
-
-  let done = false;
-  const end = () => {
-    if (done) return; done = true;
-    box.classList.add("out");
-    setTimeout(() => { box.remove(); st.remove(); }, 500);
-  };
-  box.addEventListener("click", end);
-
-  if (still) {
-    const img = new Image();
-    img.src = "icon-512.png"; img.alt = "";
-    logo.appendChild(img);
-    setTimeout(end, 1200);
-    return;
+const CACHE = "brightsteps-v35";
+const FILES = ["./", "index.html", "style.css", "app.js", "english.js", "lessons.js", "glyphs.js", "writing.js", "teacher.js", "bunny.js", "splash.js", "496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4", "manifest.json", "icon-192.png", "icon-512.png", "recorder.html"];
+// v31: install must never fail as a whole. caches.addAll() rejects if ANY single file
+// 404s, which leaves the old service worker in place and the app looking exactly the
+// same — so each file is cached on its own and a missing one is skipped instead.
+self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(FILES.map(f => c.add(f).catch(() => null))))); self.skipWaiting(); });
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET") return;
+  const isAudio = /\.(mp3|webm|ogg|wav)$/i.test(new URL(e.request.url).pathname);
+  if (isAudio) {
+    e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(r => {
+      if (r.ok && r.status === 200) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {}); }
+      return r;
+    })));
+  } else {
+    e.respondWith(fetch(e.request).then(r => {
+      if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {}); }
+      return r;
+    }).catch(() => caches.match(e.request)));
   }
-
-  let loadTimer = null;
-  const vid = document.createElement("video");
-  vid.src = "496817cf-30fd-444e-abcf-4ee3b16aa03f.mp4";
-  vid.poster = "icon-512.png";
-  vid.muted = true; vid.playsInline = true; vid.preload = "auto";
-  vid.addEventListener("ended", end);
-  vid.addEventListener("error", showStill);
-  vid.addEventListener("playing", () => { if (loadTimer) clearTimeout(loadTimer); setTimeout(end, 11000); });
-  const play = vid.play();
-  if (play) play.catch(showStill);
-  logo.appendChild(vid);
-  // absolute safety: if the video never starts, show the still logo and open the app
-  loadTimer = setTimeout(() => { if (!done) showStill(); }, 25000);
-
-  function showStill() {
-    if (done) return;
-    vid.remove();
-    const img = new Image();
-    img.src = "icon-512.png"; img.alt = "";
-    logo.appendChild(img);
-    setTimeout(end, 1200);
-  }
-})();
+});
